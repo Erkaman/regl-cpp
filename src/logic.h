@@ -105,53 +105,11 @@ inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& f
 
 	std::string prefix = ""; 
 
-	if (useGl3) {
-		prefix += "#version 150\n";
-		prefix += "#define GL3\n";
-	}
-	else {
-		prefix += "#version 110\n";
-		prefix += "#undef GL3\n";
-	}
+	prefix += "#version 150\n";
+	prefix += "#define GL3\n";
 	
 	prefix += std::string(R"(
-#ifdef GL3
 
-#define DECLARE_GBUFFER_OUTPUT out vec4 fragData0; out vec4 fragData1; out vec4 fragData2;
-#define DECLARE_FRAG_COLOR out vec4 fragColor;
-
-#define VS_IN_ATTRIB in
-#define VS_OUT_ATTRIB out
-#define FS_IN_ATTRIB in
-
-#define MGL_FRAG_COLOR fragColor
-
-#define MGL_FRAG_DATA0 fragData0
-#define MGL_FRAG_DATA1 fragData1
-#define MGL_FRAG_DATA2 fragData2
-
-#define SAMPLE_TEX3D texture
-#define SAMPLE_TEX2D texture
-
-#else
-
-#define DECLARE_GBUFFER_OUTPUT
-#define DECLARE_FRAG_COLOR 
-
-#define VS_IN_ATTRIB attribute
-#define VS_OUT_ATTRIB varying
-#define FS_IN_ATTRIB varying
-
-#define MGL_FRAG_COLOR gl_FragColor
-
-#define MGL_FRAG_DATA0 gl_FragData[0]
-#define MGL_FRAG_DATA1 gl_FragData[1]
-#define MGL_FRAG_DATA2 gl_FragData[2]
-
-#define SAMPLE_TEX3D texture3D
-#define SAMPLE_TEX2D texture2D
-
-#endif
 )");
 
 	GLuint vs = CreateShaderFromString(prefix + vsSource, GL_VERTEX_SHADER);
@@ -814,21 +772,10 @@ void InitGlfw() {
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 }
 
-
-void checkFbo() {
-	// make sure nothing went wrong:
-	GLenum status;
-	GL_C(status = glCheckFramebufferStatus(GL_FRAMEBUFFER));
-	if (status != GL_FRAMEBUFFER_COMPLETE) {
-		LOGE("Framebuffer not complete. Status: 0x%08x\n", status);
-	}
-}
-
 void renderFrame() {
 
 	static float c = 0.0f;
 	c += 0.11f;
-
 
 	// setup matrices.
 
@@ -914,11 +861,11 @@ void setupGraphics() {
 	// it's basically just a pass-through shader that writes to the g-buffer
 	geoShader = LoadNormalShader(
 		std::string(R"(
-VS_IN_ATTRIB vec3 vertexPosition;
-VS_IN_ATTRIB vec3 vertexNormal;
+in vec3 vertexPosition;
+in vec3 vertexNormal;
 
-VS_OUT_ATTRIB vec3 fsNormal;
-VS_OUT_ATTRIB vec3 fsPos;
+out vec3 fsNormal;
+out vec3 fsPos;
 
 uniform mat4 viewProjectionMatrix;
 uniform mat4 modelMatrix;
@@ -928,38 +875,33 @@ void main()
     fsNormal =  (modelMatrix * vec4(vertexNormal, 0.0)).xyz;
     gl_Position = viewProjectionMatrix * modelMatrix * vec4(vertexPosition, 1.0);
     fsPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz;
- 
 }
 )"),
 
 
 std::string(R"(
-FS_IN_ATTRIB vec3 fsNormal;
-FS_IN_ATTRIB vec3 fsPos;
+in vec3 fsNormal;
+in vec3 fsPos;
 
-DECLARE_GBUFFER_OUTPUT
+out vec4 fragData0;
 
 void main()
 {
-    MGL_FRAG_DATA0 = vec4(fsNormal.xyz, 1.0);
+    fragData0 = vec4(fsNormal.xyz, 1.0);
 }
 )")
 );
-	
 
 	// boxes geometry.
 	{
 		std::vector<GeoVertex> vertices;
 		std::vector<Tri> indices;
 
-	
-				AddBox(
-					0.0, 0.0f, +1.6f,
-					0.09f, 0.09, 0.09f,
-					vertices, indices);			
-			
-	
-	
+		AddBox(
+			0.0, 0.0f, +1.6f,
+			0.09f, 0.09, 0.09f,
+			vertices, indices);
+
 		boxesMesh.Create(vertices, indices);
 	}
 
