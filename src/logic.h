@@ -64,18 +64,6 @@ void dpop() {
 #endif
 }
 
-enum GpuTimeStamp
-{
-	GTS_Shadow_Render,
-	GTS_Gbuffer_output,
-	GTS_Shading,
-	GTS_Scattering,
-	GTS_TAA,
-	GTS_Blit,
-	GTS_Max
-};
-
-
 float Time() {
 	clock_t startcputime = std::clock();
 	//  LOG_I("startcputime: %ld", startcputime);
@@ -714,14 +702,10 @@ struct Mesh {
 };
 
 Mesh boxesMesh;
-Mesh groundMesh;
 
 GLuint geoShader;
-GLint gsColorLocation;
-GLint gsHistVpLocation;
 GLuint gsViewProjectionMatrixLocation;
 GLuint gsModelMatrixLocation;
-GLint gsUnjitteredVpLocation;
 GLint gsPositionAttribLocation;
 GLint gsNormalAttribLocation;
 
@@ -847,30 +831,10 @@ void renderShadowCasters(bool renderDepth) {
 		
 		GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boxesMesh.indexVbo));
 
-		if(!renderDepth) glUniform3f(gsColorLocation, 0.4f, 0.0f, 0.0f);
 		glDrawElements(GL_TRIANGLES, boxesMesh.indexCount, GL_UNSIGNED_INT, 0);
 	}
 
 
-	// render ground.
-	{
-		GL_C(glBindBuffer(GL_ARRAY_BUFFER, groundMesh.vertexVbo));
-
-		if (renderDepth) {
-
-		}
-		else {
-			GL_C(glEnableVertexAttribArray((GLuint)gsPositionAttribLocation));
-			GL_C(glVertexAttribPointer((GLuint)gsPositionAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(GeoVertex), (void*)0));
-
-			GL_C(glEnableVertexAttribArray((GLuint)gsNormalAttribLocation));
-			GL_C(glVertexAttribPointer((GLuint)gsNormalAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(GeoVertex), (void*)(sizeof(float) * 3)));
-		}
-		GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, groundMesh.indexVbo));
-
-		if (!renderDepth) glUniform3f(gsColorLocation, 0.1f, 0.1f, 0.1f);
-		glDrawElements(GL_TRIANGLES, groundMesh.indexCount, GL_UNSIGNED_INT, 0);
-	}
 
 }
 
@@ -974,9 +938,6 @@ void renderFrame() {
 		mat4 id;
 		GL_C(glUniformMatrix4fv(gsModelMatrixLocation, 1, GL_FALSE, (GLfloat *)id.m));
 
-		GL_C(glUniformMatrix4fv(gsHistVpLocation, 1, GL_FALSE, (GLfloat *)histVp.m));
-		GL_C(glUniformMatrix4fv(gsUnjitteredVpLocation, 1, GL_FALSE, (GLfloat *)unjitteredVp.m));
-
 		renderShadowCasters(false);
 	}
 	
@@ -1023,12 +984,7 @@ void main()
     fsNormal =  (modelMatrix * vec4(vertexNormal, 0.0)).xyz;
     gl_Position = viewProjectionMatrix * modelMatrix * vec4(vertexPosition, 1.0);
     fsPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz;
-
-    // history clip-space position.
-    fsHistCsPos = (uHistVp * vec4(vertexPosition, 1.0));
-    // current clip-space pos, but with no jitter.
-    fsUnjitteredCsPos = (uUnjitteredVp * vec4(vertexPosition, 1.0));
-     
+ 
 }
 )"),
 
@@ -1037,23 +993,11 @@ std::string(R"(
 FS_IN_ATTRIB vec3 fsNormal;
 FS_IN_ATTRIB vec3 fsPos;
 
-FS_IN_ATTRIB vec4 fsHistCsPos;
-FS_IN_ATTRIB vec4 fsUnjitteredCsPos;
-
-uniform vec3 meshColor;
-
 DECLARE_GBUFFER_OUTPUT
-
-vec2 outputVelocity(vec4 histCsPos, vec4 curCsPos) {
-    vec2 vel = vec2(0.5, 0.5) * ( (histCsPos.xy / histCsPos.w) - (curCsPos.xy / curCsPos.w) ) ;
-    return vel;
-}
 
 void main()
 {
-    MGL_FRAG_DATA0 = vec4(meshColor.xyz, 1.0);
-    MGL_FRAG_DATA1 = vec4(fsNormal.xyz, 1.0);
-    MGL_FRAG_DATA2.xy = outputVelocity(fsHistCsPos, fsUnjitteredCsPos);
+    MGL_FRAG_DATA0 = vec4(fsNormal.xyz, 1.0);
 }
 )")
 );
@@ -1078,33 +1022,14 @@ void main()
 		boxesMesh.Create(vertices, indices);
 	}
 
-	// ground geometry.
-	{
-		std::vector<GeoVertex> vertices;
-		std::vector<Tri> indices;
-
-		AddBox(
-			0.0f, 0.0f, 0.0f,
-			10.0f, 10.0f, 0.01f,
-			vertices, indices);
-		
-		groundMesh.Create(vertices, indices);
-	}
-	
-
 	// load all locations from shaders.
 	{
-		GL_C(gsColorLocation = glGetUniformLocation(geoShader, "meshColor"));
 		GL_C(gsViewProjectionMatrixLocation = glGetUniformLocation(geoShader, "viewProjectionMatrix"));
 		GL_C(gsModelMatrixLocation = glGetUniformLocation(geoShader, "modelMatrix"));
-		GL_C(gsHistVpLocation = glGetUniformLocation(geoShader, "uHistVp"));
-		GL_C(gsUnjitteredVpLocation = glGetUniformLocation(geoShader, "uUnjitteredVp"));
-		
-		
+			
 		GL_C(gsPositionAttribLocation = glGetAttribLocation(geoShader, "vertexPosition"));
 		GL_C(gsNormalAttribLocation = glGetAttribLocation(geoShader, "vertexNormal"));
 	}
-
 
 	camera = Camera(
 		vec3(0, 9.5, 2.0f),
