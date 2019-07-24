@@ -814,29 +814,6 @@ void InitGlfw() {
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 }
 
-void renderShadowCasters(bool renderDepth) {
-
-	{
-		GL_C(glBindBuffer(GL_ARRAY_BUFFER, boxesMesh.vertexVbo));
-
-		if (renderDepth) {
-		}
-		else {
-			GL_C(glEnableVertexAttribArray((GLuint)gsPositionAttribLocation));
-			GL_C(glVertexAttribPointer((GLuint)gsPositionAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(GeoVertex), (void*)0));
-
-			GL_C(glEnableVertexAttribArray((GLuint)gsNormalAttribLocation));
-			GL_C(glVertexAttribPointer((GLuint)gsNormalAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(GeoVertex), (void*)(sizeof(float) * 3)));
-		}
-		
-		GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boxesMesh.indexVbo));
-
-		glDrawElements(GL_TRIANGLES, boxesMesh.indexCount, GL_UNSIGNED_INT, 0);
-	}
-
-
-
-}
 
 void checkFbo() {
 	// make sure nothing went wrong:
@@ -846,16 +823,6 @@ void checkFbo() {
 		LOGE("Framebuffer not complete. Status: 0x%08x\n", status);
 	}
 }
-
-//mat4 unjitteredProjectionMatrix;
-mat4 histVp;
-int iHalton = 0; // halton sample of the current frame.
-mat4 unjitteredVp;
-
-GLuint  pingPongHdrTex[2];
-int iHistHdrTex = 1;
-
-GLuint hdrTexture;
 
 void renderFrame() {
 
@@ -879,50 +846,23 @@ void renderFrame() {
 
 	mat4 viewMatrix = camera.GetViewMatrix();
 
-	dpush("shadows");
-
-	
-	dpop(); // shadow
-
-	dpush("gbuffer");
-	
 	
 	GL_C(glViewport(0, 0, fbWidth, fbHeight));
 	
 	mat4 Vp;
 
-	{
-		{
-			// update texture indices. used to maintain our history, in TAA
-			iHistHdrTex = (iHistHdrTex == 0 ? 1 : 0);
+	// setup matrices, and miscellaneous stuff.
+	{	
+		float ratio = (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT;
+	
+		mat4 projection = mat4::perspective(0.872665f * 0.5f, (float)(fbWidth) / (float)fbHeight, zNear, zFar);
+		
+		// save away the unjittered projection matrix.	
+		mat4 unjitteredProjection = projection;
 
-			// keep track of history view and projection matrices for TAA.
-			histVp = unjitteredVp;
-		}
-
-		// setup matrices, and miscellaneous stuff.
-		{
-			float ratio = (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT;
-
-			mat4 projection = mat4::perspective(0.872665f * 0.5f, (float)(fbWidth) / (float)fbHeight, zNear, zFar);
-
-			// save away the unjittered projection matrix.
-			mat4 unjitteredProjection = projection;
-
-			Vp = viewMatrix * projection;
-			unjitteredVp = viewMatrix * unjitteredProjection;
-
-			viewMatrix = camera.GetViewMatrix();
-		}
+		Vp = viewMatrix * projection;		
+		viewMatrix = camera.GetViewMatrix();	
 	}
-
-	mat4 fullscreenModelMatrix;
-
-	fullscreenModelMatrix.m[1][1] = 0.0f;
-	fullscreenModelMatrix.m[2][2] = 0.0f;
-
-	fullscreenModelMatrix.m[2][1] = +1.0f;
-	fullscreenModelMatrix.m[1][2] = -1.0f;
 
 	// render to g-buffer
 	{
@@ -933,15 +873,26 @@ void renderFrame() {
 		GL_C(glFrontFace(GL_CCW));
 
 		GL_C(glUseProgram(geoShader)); // "output geometry to gbuffer" shader
-		GL_C(glUniformMatrix4fv(gsViewProjectionMatrixLocation, 1, GL_FALSE, (GLfloat *)Vp.m));
-		
-		mat4 id;
-		GL_C(glUniformMatrix4fv(gsModelMatrixLocation, 1, GL_FALSE, (GLfloat *)id.m));
+		GL_C(glUniformMatrix4fv(gsViewProjectionMatrixLocation, 1, GL_FALSE, (GLfloat*)Vp.m));
 
-		renderShadowCasters(false);
+		mat4 id;
+		GL_C(glUniformMatrix4fv(gsModelMatrixLocation, 1, GL_FALSE, (GLfloat*)id.m));
+
+		{
+			GL_C(glBindBuffer(GL_ARRAY_BUFFER, boxesMesh.vertexVbo));
+
+			GL_C(glEnableVertexAttribArray((GLuint)gsPositionAttribLocation));
+			GL_C(glVertexAttribPointer((GLuint)gsPositionAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(GeoVertex), (void*)0));
+
+			GL_C(glEnableVertexAttribArray((GLuint)gsNormalAttribLocation));
+			GL_C(glVertexAttribPointer((GLuint)gsNormalAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(GeoVertex), (void*)(sizeof(float) * 3)));
+
+
+			GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boxesMesh.indexVbo));
+
+			glDrawElements(GL_TRIANGLES, boxesMesh.indexCount, GL_UNSIGNED_INT, 0);
+		}
 	}
-	
-	dpop(); // gbuffer
 
 }
 
@@ -959,7 +910,6 @@ void HandleInput() {
 void setupGraphics() {
 	InitGlfw();
 
-
 	// shader for rendering geometry.
 	// it's basically just a pass-through shader that writes to the g-buffer
 	geoShader = LoadNormalShader(
@@ -970,14 +920,8 @@ VS_IN_ATTRIB vec3 vertexNormal;
 VS_OUT_ATTRIB vec3 fsNormal;
 VS_OUT_ATTRIB vec3 fsPos;
 
-VS_OUT_ATTRIB vec4 fsHistCsPos;
-VS_OUT_ATTRIB vec4 fsUnjitteredCsPos;
-
 uniform mat4 viewProjectionMatrix;
 uniform mat4 modelMatrix;
-
-uniform mat4 uHistVp;
-uniform mat4 uUnjitteredVp;
 
 void main()
 {
@@ -1009,15 +953,12 @@ void main()
 		std::vector<Tri> indices;
 
 	
-		for (float x = -5.0f; x < +5.0f; x += 0.9f) {
-			for (float y = -5.0f; y < 5.0f; y += 0.9f) {
-				
 				AddBox(
-					x, y, +1.6f,
+					0.0, 0.0f, +1.6f,
 					0.09f, 0.09, 0.09f,
 					vertices, indices);			
-			}
-		}
+			
+	
 	
 		boxesMesh.Create(vertices, indices);
 	}
