@@ -5,30 +5,17 @@
 
 #include <cstdlib>
 
-#include <cstring>
 #include <string>
-#include <ctime>
 
 #include <vector>
 #include <string>
 
 #define _USE_MATH_DEFINES
-
 #include <math.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-#include "stb_image.h"
-
-#include <chrono>
 #include <thread>
 
-
 GLFWwindow* window;
-
-#define  LOGI(...)  printf(__VA_ARGS__)
-#define  LOGE(...)  printf(__VA_ARGS__)
-
 
 inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
 {
@@ -315,7 +302,7 @@ public:
 		det = m00 * inv[0] + m01 * inv[4] + m02 * inv[8] + m03 * inv[12];
 
 		if (det == 0)
-			LOGE("Determinant() = 0, so the matrix can not be inversed");
+			printf("Determinant() = 0, so the matrix can not be inversed");
 
 		det = 1.0f / det;
 
@@ -531,7 +518,7 @@ public:
 			position += -delta * cameraSpeed * up;
 
 		if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS) {
-			LOGI("vec3(%f,%f,%f), vec3(%f,%f,%f),\n\n",
+			printf("vec3(%f,%f,%f), vec3(%f,%f,%f),\n\n",
 				position.x, position.y, position.z,
 				viewDir.x, viewDir.y, viewDir.z
 			);
@@ -560,39 +547,6 @@ Camera camera(vec3(0, 0, 0), vec3(0, 0, 0));
 void error_callback(int error, const char* description)
 {
 	puts(description);
-}
-
-void InitGlfw() {
-	if (!glfwInit())
-		exit(EXIT_FAILURE);
-
-	glfwSetErrorCallback(error_callback);
-
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_SAMPLES, 0);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Deferred Shading Demo", NULL, NULL);
-	if (!window) {
-		glfwTerminate();
-		exit(EXIT_FAILURE);
-	}
-	glfwMakeContextCurrent(window);
-
-
-	glfwSetWindowPos(window, 0, 30);
-
-	// load GLAD.
-	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-
-	// Bind and create VAO, otherwise, we can't do anything in OpenGL.
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 }
 
 std::array<std::array<float, 4>, 4> toArr(const mat4& matrix) {
@@ -706,7 +660,40 @@ void HandleInput() {
 }
 
 void setupGraphics() {
-	InitGlfw();
+	
+	{
+		if (!glfwInit())
+			exit(EXIT_FAILURE);
+
+		glfwSetErrorCallback(error_callback);
+
+		glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_SAMPLES, 0);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+		window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Deferred Shading Demo", NULL, NULL);
+		if (!window) {
+			glfwTerminate();
+			exit(EXIT_FAILURE);
+		}
+		glfwMakeContextCurrent(window);
+
+
+		glfwSetWindowPos(window, 0, 30);
+
+		// load GLAD.
+		gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+
+		// Bind and create VAO, otherwise, we can't do anything in OpenGL.
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+
+		glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+	}
+	
 
 	camera = Camera(vec3(-0.277534f, 0.885269f, 2.221981f), vec3(-0.008268f, -0.841857f, -0.539637f));
 	
@@ -748,4 +735,32 @@ void setupGraphics() {
 		.length((unsigned int)indexData.size() / 1)
 		.name("cube index buffer")
 		.finish();
+
+	float frameStartTime = 0;
+	float frameEndTime = 0;
+	frameStartTime = (float)glfwGetTime();
+
+	while (!glfwWindowShouldClose(window)) {
+
+		glfwPollEvents();
+		HandleInput();
+		renderFrame();
+		glfwSwapBuffers(window);
+
+		// FPS regulation code. we will ensure that a framerate of 30FPS is maintained.
+		// and for simplicity, we just assume that the computer is always able to maintain a framerate of at least 30FPS.
+		{
+			frameEndTime = (float)glfwGetTime();
+			float frameDuration = frameEndTime - frameStartTime;
+			const float sleepDuration = 1.0f / 30.0f - frameDuration;
+			if (sleepDuration > 0.0f) {
+
+				std::this_thread::sleep_for(std::chrono::milliseconds((int)(sleepDuration * 1000.0f)));
+			}
+			frameStartTime = (float)glfwGetTime();
+		}
+	}
+
+	glfwTerminate();
+	exit(EXIT_SUCCESS);
 }
