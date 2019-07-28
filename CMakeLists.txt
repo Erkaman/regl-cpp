@@ -43,6 +43,8 @@ set(ALL_LIBS
 add_executable(regl-cpp
   src/main.cpp
   src/regl-cpp.cpp
+  src/glfw-util.cpp
+
   deps/glad/src/glad.c
 	)
 
