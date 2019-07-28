@@ -605,9 +605,7 @@ GLint gsNormalAttribLocation;
 
 GLuint frameFbo;
 
-Camera camera(
-	vec3(3, 2, 0),
-	vec3::normalize(vec3(-1.0f, -0.3f, 0.0)));
+Camera camera(vec3(0,0,0), vec3(0,0,0));
 
 void AddBox(
 	float ox, float oy, float oz,
@@ -616,9 +614,17 @@ void AddBox(
 
 	GLuint ibeg = (GLuint)vertices.size();
 
+	vertices.push_back(GeoVertex{ +0.5f, -0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
+	vertices.push_back(GeoVertex{ +0.5f, +0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
+	vertices.push_back(GeoVertex{ -0.5f, +0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
+
+	
+	/*
 	vertices.push_back(GeoVertex{ -0.5f, +0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
 	vertices.push_back(GeoVertex{ +0.5f, +0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
 	vertices.push_back(GeoVertex{ +0.5f, -0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
+
+	
 	vertices.push_back(GeoVertex{ -0.5f, -0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
 
 	vertices.push_back(GeoVertex{ +0.5f, +0.5f, +0.5f, +1.0f, +0.0f, +0.0f });
@@ -645,6 +651,7 @@ void AddBox(
 	vertices.push_back(GeoVertex{ +0.5f, -0.5f, -0.5f, +0.0f, -1.0f, +0.0f });
 	vertices.push_back(GeoVertex{ +0.5f, -0.5f, +0.5f, +0.0f, -1.0f, +0.0f });
 	vertices.push_back(GeoVertex{ -0.5f, -0.5f, +0.5f, +0.0f, -1.0f, +0.0f });
+	*/
 
 	int iend = (GLuint)vertices.size();
 
@@ -656,10 +663,16 @@ void AddBox(
 		v.z = (v.z + 0.5f) * 2.0f * sz + (oz - sz);
 	}
 
-	indices.push_back(Tri{ 2 + ibeg,  1 + ibeg,  0 + ibeg });
+	//indices.push_back(Tri{ 2 + ibeg,  1 + ibeg,  0 + ibeg });
+	indices.push_back(Tri{ 0 + ibeg,  1 + ibeg,  2 + ibeg });
+
+	/*
 	indices.push_back(Tri{ 2 + ibeg,  0 + ibeg,  3 + ibeg });
+	
 	indices.push_back(Tri{ 6 + ibeg,  5 + ibeg,  4 + ibeg });
 	indices.push_back(Tri{ 6 + ibeg,  4 + ibeg,  7 + ibeg });
+
+	
 	indices.push_back(Tri{ 10 + ibeg,  9 + ibeg,  8 + ibeg });
 	indices.push_back(Tri{ 10 + ibeg,  8 + ibeg, 11 + ibeg });
 	indices.push_back(Tri{ 14 + ibeg, 13 + ibeg, 12 + ibeg });
@@ -668,6 +681,7 @@ void AddBox(
 	indices.push_back(Tri{ 18 + ibeg, 16 + ibeg, 19 + ibeg });
 	indices.push_back(Tri{ 20 + ibeg, 21 + ibeg, 22 + ibeg });
 	indices.push_back(Tri{ 23 + ibeg, 20 + ibeg, 22 + ibeg });
+	*/
 }
 
 void error_callback(int error, const char* description)
@@ -761,8 +775,8 @@ void renderFrame() {
 		.viewport(0, 0, fbWidth, fbHeight)
 		.depthTest(true)
 		.vert(R"V0G0N(  
-in vec3 vertexPosition;
-in vec3 vertexNormal;
+in vec3 aPosition;
+in vec3 aNormal;
 
 out vec3 fsNormal;
 out vec3 fsPos;
@@ -772,9 +786,9 @@ uniform mat4 uModelMatrix;
 
 void main()
 {
-    fsNormal =  (uModelMatrix * vec4(vertexNormal, 0.0)).xyz;
-    gl_Position = uViewProjectionMatrix * uModelMatrix * vec4(vertexPosition, 1.0);
-    fsPos = (uModelMatrix * vec4(vertexPosition, 1.0)).xyz;
+    fsNormal =  (uModelMatrix * vec4(aNormal, 0.0)).xyz;
+    gl_Position = uViewProjectionMatrix * uModelMatrix * vec4(aPosition, 1.0);
+    fsPos = (uModelMatrix * vec4(aPosition, 1.0)).xyz;
 }
 
 				)V0G0N")
@@ -789,7 +803,9 @@ uniform vec3 uModifier;
 
 void main()
 {
-    fragData0 = vec4(fsNormal.xyz * uModifier, 1.0);
+//    fragData0 = vec4(fsNormal.xyz * uModifier, 1.0);
+    fragData0 = vec4(1.0, 0.0, 0.0, 1.0);
+
 }
 
 				)V0G0N")
@@ -806,7 +822,10 @@ void main()
 	
 	reglCpp::context.frame([&drawCmd]() {
 		reglCpp::context.submit(drawCmd);
+
 	});
+	return;
+
 	
 	static float c = 0.0f;
 	c += 0.11f;
@@ -824,6 +843,7 @@ void main()
 	GL_C(glUseProgram(0));
 	GL_C(glBindTexture(GL_TEXTURE_2D, 0));
 	GL_C(glDepthFunc(GL_LESS));
+
 
 	GL_C(glViewport(0, 0, fbWidth, fbHeight));
 	
@@ -873,6 +893,8 @@ void main()
 			glDrawElements(GL_TRIANGLES, boxesMesh.indexCount, GL_UNSIGNED_INT, 0);
 		}
 	}
+	
+
 
 }
 
@@ -1013,15 +1035,18 @@ void main()
 		GL_C(gsNormalAttribLocation = glGetAttribLocation(geoShader, "vertexNormal"));
 	}
 
-	camera = Camera(
-		vec3(0, 9.5, 2.0f),
-		vec3::normalize(vec3(0.0f, -1.0f, 0.0)));
 
+	camera = Camera(
+
+		vec3(-0.277534, 0.885269, 2.221981), vec3(-0.008268, -0.841857, -0.539637)
+);
 
 	std::vector<float> posData{
-			1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f, };
+ 0.0900000036, -0.0900000036, 1.69000006,
+ 0.0900000036,  0.0900000036, 1.69000006,
+ -0.0900000036, 0.0900000036, 1.69000006
+
+	};
 
 	cubePosBuffer =
 		reglCpp::VertexBuffer()
@@ -1034,7 +1059,8 @@ void main()
 	std::vector<float> normalData{
 			0.0f, 0.0f, 1.0f,
 			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f, };
+			0.0f, 0.0f, 1.0f
+	};
 
 	cubeNormalBuffer =
 		reglCpp::VertexBuffer()

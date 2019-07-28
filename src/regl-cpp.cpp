@@ -125,7 +125,7 @@ VertexBuffer& VertexBuffer::finish() {
 	GL_C(glBindBuffer(GL_ARRAY_BUFFER, mBufferObject.first));
 	GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mNumComponents * mLength, (float*)mData, glUsage));
 	GL_C(glBindBuffer(GL_ARRAY_BUFFER, 0));
-
+	int siz = sizeof(float) * mNumComponents * mLength ;
 	mBufferObject.second = true; // signify it was properly finished.
 
 	return *this;
@@ -301,8 +301,21 @@ void reglCppContext::submitWithContextState(contextState state) {
 	//set view port  glViewport.
 
 	if (state.mCount != -1) {
+		if (state.mDepthTest) {
+			GL_C(glEnable(GL_DEPTH_TEST));
+		}
+		else {
+			GL_C(glDisable(GL_DEPTH_TEST));
+		}
 
-
+		GL_C(glDepthMask(true));
+		GL_C(glDisable(GL_BLEND));
+		GL_C(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+		GL_C(glEnable(GL_CULL_FACE));
+		GL_C(glFrontFace(GL_CCW));
+		GL_C(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+		GL_C(glDepthFunc(GL_LESS));
+		
 		if (state.mVert.size() == 0) {
 			printf("please specify a vertex shader\n");
 			exit(1);
@@ -321,12 +334,15 @@ void reglCppContext::submitWithContextState(contextState state) {
 			UniformValue uniformValue = pair.second;
 
 			if (programInfo.mUniforms.count(uniformName) == 0) {
+				continue;
+				/*
 				printf("the program doesnt have uniform with name %s. vert %s\n frag %s",
 					uniformName.c_str(),
 
 					programInfo.mVert.c_str(),
 					programInfo.mFrag.c_str()
 				);
+				*/
 			}
 			unsigned int uniformLocation = programInfo.mUniforms[uniformName];
 
@@ -354,12 +370,13 @@ void reglCppContext::submitWithContextState(contextState state) {
 			}
 		}
 		
-		for (const auto& pair : state.mAttributes) {
-			std::string attributeName = pair.first;
-			VertexBuffer* attributeVertexBuffer = pair.second;
 
-			unsigned int attributeLocation = programInfo.mAttributes[attributeName];
-			
+		for (const auto& pair : programInfo.mAttributes) {
+			std::string attributeName = pair.first;
+			unsigned int attributeLocation = pair.second;
+
+			VertexBuffer* attributeVertexBuffer = state.mAttributes[attributeName];
+
 			GLenum type = GL_FLOAT;
 
 			if (!attributeVertexBuffer->mBufferObject.second) {
@@ -367,18 +384,31 @@ void reglCppContext::submitWithContextState(contextState state) {
 				exit(1);
 			}
 			
-			GL_C(glEnableVertexAttribArray((GLuint)attributeLocation));
+			glBindBuffer(GL_ARRAY_BUFFER, attributeVertexBuffer->mBufferObject.first);
+			
 			GL_C(glVertexAttribPointer(
 				(GLuint)attributeLocation, 
 				attributeVertexBuffer->mNumComponents,
 				type,
 				GL_FALSE, 
-				0, 
+				sizeof(float) * attributeVertexBuffer->mNumComponents,
 				(void*)0));
-
+			
+			GL_C(glEnableVertexAttribArray((GLuint)attributeLocation));
+			
 		}
 
-		
+		if (state.mIndices == nullptr) {
+			
+		}
+		else {
+			// TODO: handle other things than triangles as well.
+			GL_C(glDrawArrays(GL_TRIANGLES, 0, state.mCount));
+		}
+	
+		//now bind index buffer. and then draw.
+		//also, handle rendering without index buffer.
+
 
 	}
 }
