@@ -6,8 +6,6 @@ int main(int argc, char** argv) {
 
 	setupGraphics();
 
-	float a = atan(4.9 / 40.0);
-	
 	float frameStartTime = 0;
 	float frameEndTime = 0;
 	frameStartTime = (float)glfwGetTime();

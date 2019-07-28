@@ -1034,20 +1034,20 @@ void main()
 
 	camera = Camera(
 
-		vec3(-0.277534, 0.885269, 2.221981), vec3(-0.008268, -0.841857, -0.539637)
+		vec3(-0.277534f, 0.885269f, 2.221981f), vec3(-0.008268f, -0.841857f, -0.539637f)
 );
 
 	std::vector<float> posData{
- 0.0900000036, -0.0900000036, 1.69000006,
- 0.0900000036,  0.0900000036, 1.69000006,
- -0.0900000036, 0.0900000036, 1.69000006
+ 0.0900000036f, -0.0900000036f, 1.69000006f,
+ 0.0900000036f,  0.0900000036f, 1.69000006f,
+ -0.0900000036f, 0.0900000036f, 1.69000006f
 
 	};
 
 	cubePosBuffer =
 		reglCpp::VertexBuffer()
 		.data(posData.data())
-		.length(posData.size() / 3)
+		.length((unsigned int)posData.size() / 3)
 		.numComponents(3)
 		.name("cube normal buffer")
 		.finish();
@@ -1061,7 +1061,7 @@ void main()
 	cubeNormalBuffer =
 		reglCpp::VertexBuffer()
 		.data(normalData.data())
-		.length(normalData.size() / 3)
+		.length((unsigned int)normalData.size() / 3)
 		.numComponents(3)
 		.name("cube normal buffer")
 		.finish();
