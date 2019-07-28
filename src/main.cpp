@@ -73,9 +73,7 @@ void demo() {
 
 		mat4 viewMatrix = camera.GetViewMatrix();
 
-		mat4 modelMatrix;
-		modelMatrix.m[3][0] = -0.5f;
-
+		
 		mat4 viewProjectionMatrix = viewMatrix * projectionMatrix;
 
 		std::array<std::array<float, 4>, 4> view{
@@ -136,24 +134,43 @@ void main()
 				.indices(&cubeIndexBuffer)
 			.count(3)
 			.uniforms({
-				{ "uModifier", { 1.0f, 1.0f, 0.2f } },
-				{ "uModelMatrix", toArr(modelMatrix) },
 				{ "uViewProjectionMatrix", toArr(viewProjectionMatrix) },
+				{ "uModifier",{1.0f, 1.0f, 0.3f} },
+
 				});
 		
 		reglCpp::context.frame([&baseCmd, &clearCmd]() {
 			
 			reglCpp::context.submit(clearCmd);
 			
-			reglCpp::context.submit(baseCmd);
-			
-			/*
 			reglCpp::context.submit(baseCmd, []() {
-
-				reglCpp::context.submit();
-				});
 			
-			*/
+				{
+					mat4 modelMatrix;
+					modelMatrix.m[3][0] = -0.5f;
+
+					Command triCmd = Command()
+						.uniforms({
+							{ "uModelMatrix", toArr(modelMatrix) },
+							});
+
+					reglCpp::context.submit(triCmd);
+				}
+
+				{
+					mat4 modelMatrix = mat4();
+					modelMatrix.m[3][0] = +0.5f;
+
+					Command triCmd = Command()
+						.uniforms({
+							{ "uModelMatrix", toArr(modelMatrix) },
+							});
+
+					reglCpp::context.submit(triCmd);
+				}
+			});
+			
+		
 		});
 	});
 	
