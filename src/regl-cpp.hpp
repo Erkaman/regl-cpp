@@ -76,23 +76,47 @@ struct Uniform {
 
 struct VertexBuffer {
 	// should probably be a pointer to data instead.
-	std::vector<float> mData;
-	int mLength = -1; // if -1, just use length of mData.
+	float* mData = nullptr;
 	
-	VertexBuffer& data(const std::vector<float> data) {
+	// gl buffer object.
+	std::pair<unsigned int, bool> mBufferObject = { -1, false };
+	
+	int mNumComponents = -1; // the numer of components of each element in the buffer. 3, means VEC3 for instance
+	int mLength = -1; // the number of elements in the buffer
+
+	/*
+	either 'static', 'dynamic' or 'stream'
+	*/
+	std::string mUsage = "static";
+
+	std::string mName = "unnnamed"; // can be useful setting for debugging.
+	
+	VertexBuffer& data(float* data) {
 		mData = data;
 		return *this;
 	}
-
+	
 	VertexBuffer& length(int length) {
 		mLength = length;
 		return *this;
 	}
 	
-	VertexBuffer& finish() {
-		// TODO: actually allocate GL data.
+	VertexBuffer& numComponents(int numComponents) {
+		mNumComponents = numComponents;
 		return *this;
-	};
+	}
+
+	VertexBuffer& usage(std::string usage) {
+		mUsage = usage;
+		return *this;
+	}
+
+	VertexBuffer& name(std::string name) {
+		mName = name;
+		return *this;
+	}
+
+	VertexBuffer& finish();
 };
 
 struct IndexBuffer {
@@ -128,7 +152,7 @@ struct Command {
 	int mCount = -1;
 	
 	// x, y, w, h
-	std::array<float, 4> mViewport = {NAN, NAN, NAN, NAN};
+	std::array<int, 4> mViewport = {-1, -1, -1, -1};
 
 	std::array<float, 4> mClearColor = { NAN, NAN, NAN, NAN };
 	float mClearDepth = NAN;
@@ -139,7 +163,7 @@ struct Command {
 	std::string mVert = "";
 	std::string mFrag = "";
 	
-	Command& viewport(float x, float y, float w, float h) {
+	Command& viewport(int x, int y, int w, int h) {
 		mViewport[0] = x;
 		mViewport[1] = y;
 		mViewport[2] = w;
@@ -212,10 +236,10 @@ private:
 		std::map<std::string, VertexBuffer*> mAttributes;
 		IndexBuffer* mIndices;
 		int mCount;
-		std::array<float, 4> mViewport;
+		std::array<int, 4> mViewport;
 		
 		contextState(){
-			mViewport = { NAN, NAN, NAN, NAN };
+			mViewport = { -1, -1, -1, -1 };
 
 			mClearColor = { NAN, NAN, NAN, NAN };
 			mClearDepth = NAN;
@@ -230,10 +254,10 @@ private:
 	};
 
 	struct ProgramInfo {
-		unsigned int mProgram;
+		unsigned int mProgram = -1;
 
-		std::string mVert;
-		std::string mFrag;
+		std::string mVert = "";
+		std::string mFrag = "";
 
 		std::map<std::string, unsigned int> mUniforms;
 		std::map<std::string, int> mAttributes;

@@ -73,13 +73,12 @@ void reglCppContext::transferStack(contextState& stackState, const Command& comm
 		) {
 		stackState.mClearColor = command.mClearColor;
 	}
-
+	
 	if (
-		!std::isnan(command.mViewport[0]) &&
-		!std::isnan(command.mViewport[1]) &&
-		!std::isnan(command.mViewport[2]) &&
-		!std::isnan(command.mViewport[3])
-		) {
+		command.mViewport[0] != -1 &&
+		command.mViewport[1] != -1 &&
+		command.mViewport[2] != -1 &&
+		command.mViewport[3] != -1) {
 		stackState.mViewport = command.mViewport;
 	}
 	
@@ -88,6 +87,49 @@ void reglCppContext::transferStack(contextState& stackState, const Command& comm
 	}
 
 }
+
+VertexBuffer& VertexBuffer::finish() {
+	int glUsage;
+	
+	if (mUsage == "static") {
+		glUsage = GL_STATIC_DRAW;
+	}
+	else if (mUsage == "dynamic") {
+		glUsage = GL_DYNAMIC_DRAW;
+	}
+	else if (mUsage == "stream") {
+		glUsage = GL_STREAM_DRAW;
+	}
+	else {
+		printf("'%s' is not a valid valid of vertex buffer 'usage'\n", mUsage.c_str());
+		exit(1);
+	}
+
+	// 1, 2, 3, 4.
+	if (mNumComponents <= 0 || mNumComponents >= 5) {
+		printf("'%d' is not a valid  number of vertex buffer components\n", mNumComponents);
+		exit(1);
+	}
+	
+	if (mLength < 0) {
+		printf("'%d' is not a valid vertex buffer length\n", mLength);
+		exit(1);
+	}
+
+	if (mData == nullptr) {
+		printf("Need to specify data for vertex buffer\n");
+		exit(1);
+	}
+
+	GL_C(glGenBuffers(1, &mBufferObject.first));
+	GL_C(glBindBuffer(GL_ARRAY_BUFFER, mBufferObject.first));
+	GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mNumComponents * mLength, (float*)mData, glUsage));
+	GL_C(glBindBuffer(GL_ARRAY_BUFFER, 0));
+
+	mBufferObject.second = true; // signify it was properly finished.
+
+	return *this;
+};
 
 inline char* GetShaderLogInfo(GLuint shader) {
 	GLint len;
@@ -225,10 +267,10 @@ reglCppContext::ProgramInfo reglCppContext::fetchProgram(const std::string& vert
 
 void reglCppContext::submitWithContextState(contextState state) {
 
-	if (std::isnan(state.mViewport[0]) ||
-		std::isnan(state.mViewport[1]) ||
-		std::isnan(state.mViewport[2]) ||
-		std::isnan(state.mViewport[3])) {
+	if (state.mViewport[0] == -1 ||
+		state.mViewport[1] == -1 ||
+		state.mViewport[2] == -1 ||
+		state.mViewport[3] == -1) {
 		
 		printf("you need to specify a viewport for your command");
 	}
@@ -282,8 +324,8 @@ void reglCppContext::submitWithContextState(contextState state) {
 				printf("the program doesnt have uniform with name %s. vert %s\n frag %s",
 					uniformName.c_str(),
 
-					programInfo.mVert,
-					programInfo.mFrag
+					programInfo.mVert.c_str(),
+					programInfo.mFrag.c_str()
 				);
 			}
 			unsigned int uniformLocation = programInfo.mUniforms[uniformName];
@@ -311,6 +353,33 @@ void reglCppContext::submitWithContextState(contextState state) {
 				GL_C(glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, (GLfloat*)& uniformValue.mFloatMat4x4[0]));
 			}
 		}
+		
+		for (const auto& pair : state.mAttributes) {
+			std::string attributeName = pair.first;
+			VertexBuffer* attributeVertexBuffer = pair.second;
+
+			unsigned int attributeLocation = programInfo.mAttributes[attributeName];
+			
+			GLenum type = GL_FLOAT;
+
+			if (!attributeVertexBuffer->mBufferObject.second) {
+				printf("forgot to call '.finish()' on the buffer named '%s'\n", attributeVertexBuffer->mName.c_str());
+				exit(1);
+			}
+			
+			GL_C(glEnableVertexAttribArray((GLuint)attributeLocation));
+			GL_C(glVertexAttribPointer(
+				(GLuint)attributeLocation, 
+				attributeVertexBuffer->mNumComponents,
+				type,
+				GL_FALSE, 
+				0, 
+				(void*)0));
+
+		}
+
+		
+
 	}
 }
 

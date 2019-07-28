@@ -722,6 +722,9 @@ std::array<std::array<float, 4>, 4> toArr(const mat4& matrix) {
 	return ret;
 }
 
+reglCpp::VertexBuffer cubePosBuffer;
+reglCpp::VertexBuffer cubeNormalBuffer;
+
 void renderFrame() {
 
 	using namespace reglCpp;
@@ -732,7 +735,6 @@ void renderFrame() {
 
 	mat4 projectionMatrix = mat4::perspective(0.872665f * 0.5f, (float)(fbWidth) / (float)fbHeight, zNear, zFar);
 
-	
 	mat4 modelMatrix;
 
 	mat4 viewProjectionMatrix = viewMatrix * projectionMatrix;
@@ -746,22 +748,6 @@ void renderFrame() {
 		}
 	};
 	std::vector<Uniform> lol;
-
-	VertexBuffer cubePosBuffer =
-		VertexBuffer()
-		.data({
-			1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f, })
-		.finish();
-
-	VertexBuffer cubeNormalBuffer =
-		VertexBuffer()
-		.data({
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f, })
-		.finish();
 
 	IndexBuffer cubeIndexBuffer =
 		IndexBuffer()
@@ -811,13 +797,13 @@ void main()
 			{ "aPosition", &cubePosBuffer },
 			{ "aNormal", &cubeNormalBuffer }})
 		.indices(&cubeIndexBuffer)
-		.count(1)
+		.count(3)
 		.uniforms({
 			{ "uModifier", { 1.0f, 1.0f, 1.0f } },
 			{ "uModelMatrix", toArr(modelMatrix) },
 			{ "uViewProjectionMatrix", toArr(viewProjectionMatrix) },
 			});
-
+	
 	reglCpp::context.frame([&drawCmd]() {
 		reglCpp::context.submit(drawCmd);
 	});
@@ -1030,5 +1016,33 @@ void main()
 	camera = Camera(
 		vec3(0, 9.5, 2.0f),
 		vec3::normalize(vec3(0.0f, -1.0f, 0.0)));
+
+
+	std::vector<float> posData{
+			1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f, };
+
+	cubePosBuffer =
+		reglCpp::VertexBuffer()
+		.data(posData.data())
+		.length(3)
+		.numComponents(3)
+		.name("cube normal buffer")
+		.finish();
+
+	std::vector<float> normalData{
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f, };
+
+	cubeNormalBuffer =
+		reglCpp::VertexBuffer()
+		.data(normalData.data())
+		.length(3)
+		.numComponents(3)
+		.name("cube normal buffer")
+		.finish();
+
 
 }
