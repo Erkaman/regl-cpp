@@ -38,59 +38,53 @@ void reglCppContext::frame(const std::function<void()>& fn) {
 	fn();
 }
 
-void reglCppContext::submit(const pass& cmd) {
-	// TODO: crash if executed outside frame.
-
-	GL_C(glClearColor(
-		cmd.mClearColor[0], 
-		cmd.mClearColor[1],
-		cmd.mClearColor[2],
-		cmd.mClearColor[3]));
-
-	GL_C(glClearDepth(cmd.mClearDepth));
-
-	GL_C(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-}
-
-void reglCppContext::transferStack(contextState& stackState, const command& cmd) {
-	if (cmd.mIndices != nullptr) {
-		stackState.mIndices = cmd.mIndices;
+void reglCppContext::transferStack(contextState& stackState, const Command& command) {
+	if (command.mIndices != nullptr) {
+		stackState.mIndices = command.mIndices;
 	}
-	if (cmd.mCount != -1) {
-		stackState.mCount = cmd.mCount;
+	if (command.mCount != -1) {
+		stackState.mCount = command.mCount;
 	}
-	for (attribute attrib : cmd.mAttributes) {
-		stackState.mAttributes[attrib.mKey] = attrib.mVertexBuffer;
+	for (Attribute attribute : command.mAttributes) {
+		stackState.mAttributes[attribute.mKey] = attribute.mVertexBuffer;
 	}
 
-	for (uniform u : cmd.mUniforms) {
-		stackState.mUniforms[u.mKey] = u.mValue;
+	for (Uniform uniform : command.mUniforms) {
+		stackState.mUniforms[uniform.mKey] = uniform.mValue;
 	}
 
-	if (cmd.mPipeline.mDepthTest.second) {
-		stackState.mDepthTest = cmd.mPipeline.mDepthTest.first;
+	if (command.mPipeline.mDepthTest.second) {
+		stackState.mDepthTest = command.mPipeline.mDepthTest.first;
 	}
 
-	if (cmd.mPipeline.mVert != "") {
-		stackState.mVert = cmd.mPipeline.mVert;
+	if (command.mPipeline.mVert != "") {
+		stackState.mVert = command.mPipeline.mVert;
 	}
 
-	if (cmd.mPipeline.mFrag != "") {
-		stackState.mFrag = cmd.mPipeline.mFrag;
+	if (command.mPipeline.mFrag != "") {
+		stackState.mFrag = command.mPipeline.mFrag;
 	}
 
 	if (
-		!std::isnan(cmd.mPass.mClearColor[0]) &&
-		!std::isnan(cmd.mPass.mClearColor[1]) &&
-		!std::isnan(cmd.mPass.mClearColor[2]) &&
-		!std::isnan(cmd.mPass.mClearColor[3])
+		!std::isnan(command.mPass.mClearColor[0]) &&
+		!std::isnan(command.mPass.mClearColor[1]) &&
+		!std::isnan(command.mPass.mClearColor[2]) &&
+		!std::isnan(command.mPass.mClearColor[3])
 		) {
-
-		stackState.mClearColor = cmd.mPass.mClearColor;
+		stackState.mClearColor = command.mPass.mClearColor;
 	}
 
-	if (!std::isnan(cmd.mPass.mClearDepth)) {
-		stackState.mClearDepth = cmd.mPass.mClearDepth;
+	if (
+		!std::isnan(command.mViewport[0]) &&
+		!std::isnan(command.mViewport[1]) &&
+		!std::isnan(command.mViewport[2]) &&
+		!std::isnan(command.mViewport[3])
+		) {
+		stackState.mViewport = command.mViewport;
+	}
+	
+	if (!std::isnan(command.mPass.mClearDepth)) {
+		stackState.mClearDepth = command.mPass.mClearDepth;
 	}
 
 }
@@ -167,14 +161,16 @@ reglCppContext::ProgramInfo reglCppContext::fetchProgram(const std::string& vert
 		return programCache[key];
 	}
 
-	ProgramInfo program;
+	ProgramInfo programInfo;
 
-	program.mProgram = LoadNormalShader(vert, frag);
+	programInfo.mProgram = LoadNormalShader(vert, frag);
+	programInfo.mVert = vert;
+	programInfo.mFrag = frag;
 
 	// get all attribs:
 	{
 		int count = 0;
-		glGetProgramiv(program.mProgram, GL_ACTIVE_ATTRIBUTES, &count);
+		glGetProgramiv(programInfo.mProgram, GL_ACTIVE_ATTRIBUTES, &count);
 		
 		constexpr int SIZE = 256;
 		char buf[SIZE];
@@ -185,22 +181,22 @@ reglCppContext::ProgramInfo reglCppContext::fetchProgram(const std::string& vert
 			int size = 0;
 			unsigned int type = 0;
 
-			glGetActiveAttrib(program.mProgram, (GLuint)ii, SIZE, &length, &size, &type, buf);
+			glGetActiveAttrib(programInfo.mProgram, (GLuint)ii, SIZE, &length, &size, &type, buf);
 
 			std::string nameStr(buf, length);
 
 			//printf("Attribute #%d Type: %u Name: %s\n", i, type, name);
 			int attribLocation = 0;
-			GL_C(attribLocation = glGetAttribLocation(program.mProgram, nameStr.c_str()));
+			GL_C(attribLocation = glGetAttribLocation(programInfo.mProgram, nameStr.c_str()));
 
-			program.mAttributes[nameStr] = attribLocation;
+			programInfo.mAttributes[nameStr] = attribLocation;
 		}
 	}
 
 	// get all uniforms:
 	{
 		int count = 0;
-		glGetProgramiv(program.mProgram, GL_ACTIVE_UNIFORMS, &count);
+		glGetProgramiv(programInfo.mProgram, GL_ACTIVE_UNIFORMS, &count);
 		
 		constexpr int SIZE = 256;
 		char buf[SIZE];
@@ -211,65 +207,121 @@ reglCppContext::ProgramInfo reglCppContext::fetchProgram(const std::string& vert
 			int size = 0;
 			unsigned int type = 0;
 
-			glGetActiveUniform(program.mProgram, (GLuint)ii, SIZE, &length, &size, &type, buf);
+			glGetActiveUniform(programInfo.mProgram, (GLuint)ii, SIZE, &length, &size, &type, buf);
 
 			std::string nameStr(buf, length);
 
 			//printf("Attribute #%d Type: %u Name: %s\n", i, type, name);
 			int uniformLocation = 0;
-			GL_C(uniformLocation = glGetUniformLocation(program.mProgram, nameStr.c_str()));
+			GL_C(uniformLocation = glGetUniformLocation(programInfo.mProgram, nameStr.c_str()));
 
-			program.mUniforms[nameStr] = uniformLocation;
+			programInfo.mUniforms[nameStr] = uniformLocation;
 		}
 	}
-	return program;
+	return programInfo;
 }
 
-void reglCppContext::submit(const command& cmd) {
-
-	// current state at top of stack.
-	contextState stackState = stateStack.top();
 
 
-	transferStack(stackState, cmd);
+void reglCppContext::submitWithContextState(contextState state) {
 
+	if (std::isnan(state.mViewport[0]) ||
+		std::isnan(state.mViewport[1]) ||
+		std::isnan(state.mViewport[2]) ||
+		std::isnan(state.mViewport[3])) {
+		
+		printf("you need to specify a viewport for your command");
+	}
+	
+	GL_C(glViewport(state.mViewport[0], state.mViewport[1], state.mViewport[2], state.mViewport[3]));
+
+	bool doClear = !std::isnan(state.mClearColor[0]) &&
+		!std::isnan(state.mClearColor[1]) &&
+		!std::isnan(state.mClearColor[2]) &&
+		!std::isnan(state.mClearColor[3]);
+
+	doClear = doClear && !std::isnan(state.mClearDepth);
+	
 	// translate stack state to GL commands. 
-	{
-		if (
-			!std::isnan(stackState.mClearColor[0]) &&
-			!std::isnan(stackState.mClearColor[1]) &&
-			!std::isnan(stackState.mClearColor[2]) &&
-			!std::isnan(stackState.mClearColor[3])) {
+	if (doClear) {
+		GL_C(glClearDepth(state.mClearDepth));
+		
+		GL_C(glClearColor(
+			state.mClearColor[0],
+			state.mClearColor[1],
+			state.mClearColor[2],
+			state.mClearColor[3]
+		));
+		
+		GL_C(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+	}
 
-			if (!std::isnan(stackState.mClearDepth)) {
-				GL_C(glClearDepth(stackState.mClearDepth));
-			}
-			
-			GL_C(glClearColor(
-				stackState.mClearColor[0],
-				stackState.mClearColor[1],
-				stackState.mClearColor[2],
-				stackState.mClearColor[3]
-			));
-			
-			GL_C(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-		}
+	//set view port  glViewport.
 
-		if (cmd.mPipeline.mVert.size() == 0) {
+	if (state.mCount != -1) {
+
+
+		if (state.mVert.size() == 0) {
 			printf("please specify a vertex shader\n");
 			exit(1);
 		}
-		if (cmd.mPipeline.mFrag.size() == 0) {
+		if (state.mFrag.size() == 0) {
 			printf("please specify a fragment shader\n");
 			exit(1);
 		}
 
-		ProgramInfo program = fetchProgram(cmd.mPipeline.mVert, cmd.mPipeline.mFrag);
+		ProgramInfo programInfo = fetchProgram(state.mVert, state.mFrag);
 
+		GL_C(glUseProgram(programInfo.mProgram));
 
-		printf("lol");
+		for (const auto& pair : state.mUniforms) {
+			std::string uniformName = pair.first;
+			UniformValue uniformValue = pair.second;
 
+			if (programInfo.mUniforms.count(uniformName) == 0) {
+				printf("the program doesnt have uniform with name %s. vert %s\n frag %s",
+					uniformName.c_str(),
+
+					programInfo.mVert,
+					programInfo.mFrag
+				);
+			}
+			unsigned int uniformLocation = programInfo.mUniforms[uniformName];
+
+			if (uniformValue.mType == UniformValue::FLOAT_VEC1) {
+				GL_C(glUniform1f(uniformLocation, uniformValue.mFloatVec1[0]));
+			}
+			else if (uniformValue.mType == UniformValue::FLOAT_VEC2) {
+				GL_C(glUniform2f(uniformLocation, uniformValue.mFloatVec2[0], uniformValue.mFloatVec2[1]));
+			}
+			else if (uniformValue.mType == UniformValue::FLOAT_VEC3) {
+				GL_C(glUniform3f(uniformLocation,
+					uniformValue.mFloatVec3[0],
+					uniformValue.mFloatVec3[1],
+					uniformValue.mFloatVec3[2]));
+			}
+			else if (uniformValue.mType == UniformValue::FLOAT_VEC4) {
+				GL_C(glUniform4f(uniformLocation,
+					uniformValue.mFloatVec4[0],
+					uniformValue.mFloatVec3[1],
+					uniformValue.mFloatVec4[2],
+					uniformValue.mFloatVec4[3]));
+			}
+			else if (uniformValue.mType == UniformValue::FLOAT_MAT4X4) {
+				GL_C(glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, (GLfloat*)& uniformValue.mFloatMat4x4[0]));
+			}
+		}
 	}
+}
+
+void reglCppContext::submit(const Command& command) {
+
+	// current state at top of stack.
+	contextState stackState = stateStack.top();
+
+	transferStack(stackState, command);
+
+	submitWithContextState(stackState);
 	
 }
 

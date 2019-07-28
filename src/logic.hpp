@@ -708,9 +708,34 @@ void InitGlfw() {
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 }
 
+std::array<std::array<float, 4>, 4> toArr(const mat4& matrix) {
+	mat4 m = matrix;
+	std::array<std::array<float, 4>, 4> ret{
+	{
+		{ m.m[0][0], m.m[0][1], m.m[0][2], m.m[0][3] },
+		{ m.m[1][0], m.m[1][1], m.m[1][2], m.m[1][3] },
+		{ m.m[2][0], m.m[2][1], m.m[2][2], m.m[2][3] },
+		{ m.m[3][0], m.m[3][1], m.m[3][2], m.m[3][3] },
+	}
+	};
+	
+	return ret;
+}
+
 void renderFrame() {
 
 	using namespace reglCpp;
+
+	mat4 viewMatrix = camera.GetViewMatrix();
+
+	float ratio = (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT;
+
+	mat4 projectionMatrix = mat4::perspective(0.872665f * 0.5f, (float)(fbWidth) / (float)fbHeight, zNear, zFar);
+
+	
+	mat4 modelMatrix;
+
+	mat4 viewProjectionMatrix = viewMatrix * projectionMatrix;
 
 	std::array<std::array<float, 4>, 4> view{
 		{
@@ -720,69 +745,68 @@ void renderFrame() {
 		{ 1.0f, 2.0f, 1.0f, 5.0f },
 		}
 	};
-	std::vector<uniform> lol;
+	std::vector<Uniform> lol;
 
-	vertexBuffer cubePosBuffer =
-		vertexBuffer()
+	VertexBuffer cubePosBuffer =
+		VertexBuffer()
 		.data({
 			1.0f, 0.0f, 0.0f,
 			0.0f, 0.0f, 1.0f,
 			0.0f, 0.0f, 1.0f, })
 		.finish();
 
-	vertexBuffer cubeNormalBuffer =
-		vertexBuffer()
+	VertexBuffer cubeNormalBuffer =
+		VertexBuffer()
 		.data({
 			0.0f, 0.0f, 1.0f,
 			0.0f, 0.0f, 1.0f,
 			0.0f, 0.0f, 1.0f, })
 		.finish();
 
-	indexBuffer cubeIndexBuffer =
-		indexBuffer()
+	IndexBuffer cubeIndexBuffer =
+		IndexBuffer()
 		.data({0, 1, 2 })
 		.finish();
 
-	/*
-	const clearCmd = {
-  pass: ctx.pass({
-    clearColor: [0, 0, 0, 1],
-    clearDepth: 1
-  })
-}
-
-	*/
-	pass clearCmd = pass()
-		.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
-		.clearDepth(1.0f);
-
-	command drawCmd = command()
-		.pass(pass()
-			.clearColor({ 1.2f, 0.2f, 0.2f, 1.0f })
+	Command drawCmd = Command()
+		.pass(Pass()
+			.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
 			.clearDepth(1.0f))
-		.pipeline(pipeline()
+		.viewport(0, 0, fbWidth, fbHeight)
+		.pipeline(Pipeline()
 			.depthTest(true)
 			.vert(R"V0G0N(  
-				in vec3 aPosition;
-				in vec3 aNormal;
-				uniform mat4 uProjectionMatrix;
-				uniform mat4 uViewMatrix;
-				out vec3 vNormal;
-				void main () {
-					gl_Position = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);
-					vNormal = aNormal;
-				}
+in vec3 vertexPosition;
+in vec3 vertexNormal;
+
+out vec3 fsNormal;
+out vec3 fsPos;
+
+uniform mat4 uViewProjectionMatrix;
+uniform mat4 uModelMatrix;
+
+void main()
+{
+    fsNormal =  (uModelMatrix * vec4(vertexNormal, 0.0)).xyz;
+    gl_Position = uViewProjectionMatrix * uModelMatrix * vec4(vertexPosition, 1.0);
+    fsPos = (uModelMatrix * vec4(vertexPosition, 1.0)).xyz;
+}
+
 				)V0G0N")
 			.frag(R"V0G0N(  
-				precision mediump float;
-				in vec3 vNormal;
 
-				out vec4 outColor;
+in vec3 fsNormal;
+in vec3 fsPos;
 
-				void main () {
-					outColor.rgb = vNormal;
-					outColor.a = 1.0;
-				}
+out vec4 fragData0;
+
+uniform vec3 uModifier;
+
+void main()
+{
+    fragData0 = vec4(fsNormal.xyz * uModifier, 1.0);
+}
+
 				)V0G0N"))
 		.attributes({
 			{ "aPosition", &cubePosBuffer },
@@ -790,19 +814,13 @@ void renderFrame() {
 		.indices(&cubeIndexBuffer)
 		.count(1)
 		.uniforms({
-			{ "uExample1", { 1.0f } },
-			{ "uExample2", { 1.0f, 2.0f } },
-			{ "uExample3", { 1.0f, 2.0f, 3.0f } },
-			{ "uExample4", { 1.0f, 2.0f, 1.0f, 5.0f } },
-			{ "uView", view },
+			{ "uModifier", { 1.0f, 1.0f, 1.0f } },
+			{ "uModelMatrix", toArr(modelMatrix) },
+			{ "uViewProjectionMatrix", toArr(viewProjectionMatrix) },
 			});
 
-	reglCpp::context.frame([&clearCmd, &drawCmd]() {
-		reglCpp:context.submit(clearCmd);
-	
-
+	reglCpp::context.frame([&drawCmd]() {
 		reglCpp::context.submit(drawCmd);
-
 	});
 	
 	static float c = 0.0f;
@@ -822,9 +840,6 @@ void renderFrame() {
 	GL_C(glBindTexture(GL_TEXTURE_2D, 0));
 	GL_C(glDepthFunc(GL_LESS));
 
-	mat4 viewMatrix = camera.GetViewMatrix();
-
-	
 	GL_C(glViewport(0, 0, fbWidth, fbHeight));
 	
 	mat4 Vp;
@@ -837,6 +852,8 @@ void renderFrame() {
 		
 		// save away the unjittered projection matrix.	
 		mat4 unjitteredProjection = projection;
+
+		// 	mat4 viewMatrix = camera.GetViewMatrix();
 
 		Vp = viewMatrix * projection;		
 		viewMatrix = camera.GetViewMatrix();	
@@ -986,7 +1003,7 @@ void main()
 {
     fragData0 = vec4(fsNormal.xyz, 1.0);
 }
-)")
+)" ) 
 );
 
 	// boxes geometry.
