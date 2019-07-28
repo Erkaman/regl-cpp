@@ -74,32 +74,6 @@ struct Uniform {
 	UniformValue mValue;
 };
 
-struct Pipeline {
-	// .first contains the actual value. 
-	// .second specifies whether this value has been actually set. If second==false, treat 'first' as invalid.
-	// since it hasnt been set yet. 
-	std::pair<bool, bool> mDepthTest = {false, false};
-	
-	std::string mVert = "";
-	std::string mFrag = "";
-	
-	Pipeline& depthTest(bool depthTest) {
-		this->mDepthTest.first = depthTest;
-		this->mDepthTest.second = true;
-		return *this;
-	}
-
-	Pipeline& vert(const std::string& vert) {
-		this->mVert = vert;
-		return *this;
-	}
-
-	Pipeline& frag(const std::string& frag) {
-		this->mFrag = frag;
-		return *this;
-	}
-};
-
 struct VertexBuffer {
 	// should probably be a pointer to data instead.
 	std::vector<float> mData;
@@ -148,7 +122,6 @@ struct Attribute {
 };
 
 struct Command {
-	Pipeline mPipeline;
 	std::vector<Uniform> mUniforms;
 	std::vector<Attribute> mAttributes;
 	IndexBuffer* mIndices = nullptr;
@@ -159,6 +132,12 @@ struct Command {
 
 	std::array<float, 4> mClearColor = { NAN, NAN, NAN, NAN };
 	float mClearDepth = NAN;
+	// .first contains the actual value. 
+	// .second specifies whether this value has been actually set. If second==false, treat 'first' as invalid.
+	// since it hasnt been set yet. 
+	std::pair<bool, bool> mDepthTest = { false, false };
+	std::string mVert = "";
+	std::string mFrag = "";
 	
 	Command& viewport(float x, float y, float w, float h) {
 		mViewport[0] = x;
@@ -187,11 +166,7 @@ struct Command {
 		this->mIndices = indices;
 		return *this;
 	}
-	Command& pipeline(const Pipeline& pipeline) {
-		this->mPipeline = pipeline;
-		return *this;
-	}
-
+	
 	Command& clearColor(const std::array<float, 4> & clearColor) {
 		this->mClearColor = clearColor;
 		return *this;
@@ -199,6 +174,22 @@ struct Command {
 
 	Command& clearDepth(float clearDepth) {
 		this->mClearDepth = clearDepth;
+		return *this;
+	}
+
+	Command& depthTest(bool depthTest) {
+		this->mDepthTest.first = depthTest;
+		this->mDepthTest.second = true;
+		return *this;
+	}
+
+	Command& vert(const std::string& vert) {
+		this->mVert = vert;
+		return *this;
+	}
+
+	Command& frag(const std::string& frag) {
+		this->mFrag = frag;
 		return *this;
 	}
 };

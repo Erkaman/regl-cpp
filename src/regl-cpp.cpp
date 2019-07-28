@@ -53,16 +53,16 @@ void reglCppContext::transferStack(contextState& stackState, const Command& comm
 		stackState.mUniforms[uniform.mKey] = uniform.mValue;
 	}
 
-	if (command.mPipeline.mDepthTest.second) {
-		stackState.mDepthTest = command.mPipeline.mDepthTest.first;
+	if (command.mDepthTest.second) {
+		stackState.mDepthTest = command.mDepthTest.first;
 	}
 
-	if (command.mPipeline.mVert != "") {
-		stackState.mVert = command.mPipeline.mVert;
+	if (command.mVert != "") {
+		stackState.mVert = command.mVert;
 	}
 
-	if (command.mPipeline.mFrag != "") {
-		stackState.mFrag = command.mPipeline.mFrag;
+	if (command.mFrag != "") {
+		stackState.mFrag = command.mFrag;
 	}
 
 	if (

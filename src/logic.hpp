@@ -773,9 +773,8 @@ void renderFrame() {
 		.clearDepth(1.0f)
 
 		.viewport(0, 0, fbWidth, fbHeight)
-		.pipeline(Pipeline()
-			.depthTest(true)
-			.vert(R"V0G0N(  
+		.depthTest(true)
+		.vert(R"V0G0N(  
 in vec3 vertexPosition;
 in vec3 vertexNormal;
 
@@ -807,7 +806,7 @@ void main()
     fragData0 = vec4(fsNormal.xyz * uModifier, 1.0);
 }
 
-				)V0G0N"))
+				)V0G0N")
 		.attributes({
 			{ "aPosition", &cubePosBuffer },
 			{ "aNormal", &cubeNormalBuffer }})
