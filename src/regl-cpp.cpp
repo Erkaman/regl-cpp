@@ -478,6 +478,14 @@ void reglCppContext::submit(const Command& command) {
 	
 }
 
+void reglCppContext::submit(const Command& command, const std::function<void()>& fn) {
+	contextState stackState = stateStack.top();
+	transferStack(stackState, command);
+	stateStack.push(stackState);
+	fn();
+	stateStack.pop();
+}
+
 void reglCppContext::dispose() {
 	
 	for (auto& pair : programCache) {

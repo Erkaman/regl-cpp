@@ -74,6 +74,7 @@ void demo() {
 		mat4 viewMatrix = camera.GetViewMatrix();
 
 		mat4 modelMatrix;
+		modelMatrix.m[3][0] = -0.5f;
 
 		mat4 viewProjectionMatrix = viewMatrix * projectionMatrix;
 
@@ -87,10 +88,12 @@ void demo() {
 		};
 		std::vector<Uniform> lol;
 
-		Command drawCmd = Command()
-			.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
+		Command clearCmd = Command()
+			.clearColor({ 0.2f, 0.2f, 0.2f, 1.0f })
 			.clearDepth(1.0f)
-
+			.viewport(0, 0, fbWidth, fbHeight);
+		
+		Command baseCmd = Command()
 			.viewport(0, 0, fbWidth, fbHeight)
 			.depthTest(true)
 			.vert(R"V0G0N(  
@@ -138,9 +141,20 @@ void main()
 				{ "uViewProjectionMatrix", toArr(viewProjectionMatrix) },
 				});
 		
-		reglCpp::context.frame([&drawCmd]() {
-			reglCpp::context.submit(drawCmd);
-			});
+		reglCpp::context.frame([&baseCmd, &clearCmd]() {
+			
+			reglCpp::context.submit(clearCmd);
+			
+			reglCpp::context.submit(baseCmd);
+			
+			/*
+			reglCpp::context.submit(baseCmd, []() {
+
+				reglCpp::context.submit();
+				});
+			
+			*/
+		});
 	});
 	
 

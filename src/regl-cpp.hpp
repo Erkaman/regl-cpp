@@ -297,7 +297,8 @@ public:
 
 	//void submit(const Pass& pass);
 	void submit(const Command& command);
-
+	void submit(const Command& command, const std::function<void()>& fn);
+	
 	void dispose();
 };
 
