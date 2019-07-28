@@ -74,21 +74,6 @@ struct Uniform {
 	UniformValue mValue;
 };
 
-struct Pass {
-	std::array<float, 4> mClearColor = {NAN, NAN, NAN, NAN};
-	float mClearDepth = NAN;
-
-	Pass& clearColor(const std::array<float, 4>& clearColor) {
-		this->mClearColor = clearColor;
-		return *this;
-	}
-
-	Pass& clearDepth(float clearDepth) {
-		this->mClearDepth = clearDepth;
-		return *this;
-	}
-};
-
 struct Pipeline {
 	// .first contains the actual value. 
 	// .second specifies whether this value has been actually set. If second==false, treat 'first' as invalid.
@@ -163,7 +148,6 @@ struct Attribute {
 };
 
 struct Command {
-	Pass mPass;
 	Pipeline mPipeline;
 	std::vector<Uniform> mUniforms;
 	std::vector<Attribute> mAttributes;
@@ -172,11 +156,9 @@ struct Command {
 	
 	// x, y, w, h
 	std::array<float, 4> mViewport = {NAN, NAN, NAN, NAN};
-	
-	Command& pass(const Pass& pass) {
-		this->mPass = pass;
-		return *this;
-	}
+
+	std::array<float, 4> mClearColor = { NAN, NAN, NAN, NAN };
+	float mClearDepth = NAN;
 	
 	Command& viewport(float x, float y, float w, float h) {
 		mViewport[0] = x;
@@ -207,6 +189,16 @@ struct Command {
 	}
 	Command& pipeline(const Pipeline& pipeline) {
 		this->mPipeline = pipeline;
+		return *this;
+	}
+
+	Command& clearColor(const std::array<float, 4> & clearColor) {
+		this->mClearColor = clearColor;
+		return *this;
+	}
+
+	Command& clearDepth(float clearDepth) {
+		this->mClearDepth = clearDepth;
 		return *this;
 	}
 };

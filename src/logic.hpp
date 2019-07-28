@@ -769,9 +769,9 @@ void renderFrame() {
 		.finish();
 
 	Command drawCmd = Command()
-		.pass(Pass()
-			.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
-			.clearDepth(1.0f))
+		.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
+		.clearDepth(1.0f)
+
 		.viewport(0, 0, fbWidth, fbHeight)
 		.pipeline(Pipeline()
 			.depthTest(true)

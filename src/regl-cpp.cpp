@@ -66,12 +66,12 @@ void reglCppContext::transferStack(contextState& stackState, const Command& comm
 	}
 
 	if (
-		!std::isnan(command.mPass.mClearColor[0]) &&
-		!std::isnan(command.mPass.mClearColor[1]) &&
-		!std::isnan(command.mPass.mClearColor[2]) &&
-		!std::isnan(command.mPass.mClearColor[3])
+		!std::isnan(command.mClearColor[0]) &&
+		!std::isnan(command.mClearColor[1]) &&
+		!std::isnan(command.mClearColor[2]) &&
+		!std::isnan(command.mClearColor[3])
 		) {
-		stackState.mClearColor = command.mPass.mClearColor;
+		stackState.mClearColor = command.mClearColor;
 	}
 
 	if (
@@ -83,8 +83,8 @@ void reglCppContext::transferStack(contextState& stackState, const Command& comm
 		stackState.mViewport = command.mViewport;
 	}
 	
-	if (!std::isnan(command.mPass.mClearDepth)) {
-		stackState.mClearDepth = command.mPass.mClearDepth;
+	if (!std::isnan(command.mClearDepth)) {
+		stackState.mClearDepth = command.mClearDepth;
 	}
 
 }
