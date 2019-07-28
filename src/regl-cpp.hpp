@@ -288,7 +288,6 @@ private:
 
 	void transferStack(contextState& stackState, const Command& command);
 
-
 	std::stack<contextState> stateStack;
 
 	void submitWithContextState(contextState state);
@@ -298,6 +297,8 @@ public:
 
 	//void submit(const Pass& pass);
 	void submit(const Command& command);
+
+	void dispose();
 };
 
 extern reglCppContext context;

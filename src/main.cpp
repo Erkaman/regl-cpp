@@ -142,10 +142,13 @@ void main()
 			reglCpp::context.submit(drawCmd);
 			});
 	});
+	
 
 	cubeNormalBuffer.dispose();
 	cubePosBuffer.dispose();
 	cubeIndexBuffer.dispose();
+	
+	reglCpp::context.dispose();
 }
 
 int main(int argc, char** argv) {

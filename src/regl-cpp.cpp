@@ -478,6 +478,16 @@ void reglCppContext::submit(const Command& command) {
 	
 }
 
+void reglCppContext::dispose() {
+	
+	for (auto& pair : programCache) {
+		ProgramInfo programCache = pair.second;
+		GL_C(glDeleteProgram(programCache.mProgram));
+	}
+	programCache.clear();
+
+}
+
 
 
 }
