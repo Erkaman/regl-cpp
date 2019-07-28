@@ -1,3 +1,7 @@
+#include "regl-cpp.hpp"
+
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 #include <cstdlib>
 
@@ -19,9 +23,6 @@
 #include <chrono>
 #include <thread>
 
-#include <glad/glad.h>
-
-#include <GLFW/glfw3.h>
 
 GLFWwindow* window;
 
@@ -69,71 +70,6 @@ float Time() {
 	//  LOG_I("startcputime: %ld", startcputime);
 	float cpu_duration = (float)(startcputime) / (float)CLOCKS_PER_SEC;
 	return cpu_duration;
-}
-
-inline char* GetShaderLogInfo(GLuint shader) {
-	GLint len;
-	GLsizei actualLen;
-	GL_C(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len));
-	char* infoLog = new char[len];
-	GL_C(glGetShaderInfoLog(shader, len, &actualLen, infoLog));
-	return infoLog;
-}
-
-inline GLuint CreateShaderFromString(const std::string& shaderSource, const GLenum shaderType) {
-	GLuint shader;
-
-	GL_C(shader = glCreateShader(shaderType));
-	const char *c_str = shaderSource.c_str();
-	GL_C(glShaderSource(shader, 1, &c_str, NULL));
-	GL_C(glCompileShader(shader));
-
-	GLint compileStatus;
-	GL_C(glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus));
-	if (compileStatus != GL_TRUE) {
-		LOGI("Could not compile shader\n\n%s \n\n%s\n", shaderSource.c_str(),
-			GetShaderLogInfo(shader));
-		exit(1);
-	}
-
-	return shader;
-}
-
-inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& fsShader) {
-
-	bool useGl3 = true;// just hardcode this for now.
-
-	std::string prefix = ""; 
-
-	prefix += "#version 150\n";
-	prefix += "#define GL3\n";
-	
-	prefix += std::string(R"(
-
-)");
-
-	GLuint vs = CreateShaderFromString(prefix + vsSource, GL_VERTEX_SHADER);
-	GLuint fs = CreateShaderFromString(prefix + fsShader, GL_FRAGMENT_SHADER);
-
-	GLuint shader = glCreateProgram();
-	glAttachShader(shader, vs);
-	glAttachShader(shader, fs);
-	glLinkProgram(shader);
-
-	GLint Result;
-	glGetProgramiv(shader, GL_LINK_STATUS, &Result);
-	if (Result == GL_FALSE) {
-		LOGI("Could not link shader \n\n%s\n", GetShaderLogInfo(shader));
-		exit(1);
-	}
-
-	glDetachShader(shader, vs);
-	glDetachShader(shader, fs);
-
-	glDeleteShader(vs);
-	glDeleteShader(fs);
-
-	return shader;
 }
 
 class vec2 {
@@ -774,6 +710,101 @@ void InitGlfw() {
 
 void renderFrame() {
 
+	using namespace reglCpp;
+
+	std::array<std::array<float, 4>, 4> view{
+		{
+		{ 1.0f, 2.0f, 1.0f, 5.0f },
+		{ 1.0f, 2.0f, 1.0f, 5.0f },
+		{ 1.0f, 2.0f, 1.0f, 5.0f },
+		{ 1.0f, 2.0f, 1.0f, 5.0f },
+		}
+	};
+	std::vector<uniform> lol;
+
+	vertexBuffer cubePosBuffer =
+		vertexBuffer()
+		.data({
+			1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f, })
+		.finish();
+
+	vertexBuffer cubeNormalBuffer =
+		vertexBuffer()
+		.data({
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f, })
+		.finish();
+
+	indexBuffer cubeIndexBuffer =
+		indexBuffer()
+		.data({0, 1, 2 })
+		.finish();
+
+	/*
+	const clearCmd = {
+  pass: ctx.pass({
+    clearColor: [0, 0, 0, 1],
+    clearDepth: 1
+  })
+}
+
+	*/
+	pass clearCmd = pass()
+		.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
+		.clearDepth(1.0f);
+
+	command drawCmd = command()
+		.pass(pass()
+			.clearColor({ 1.2f, 0.2f, 0.2f, 1.0f })
+			.clearDepth(1.0f))
+		.pipeline(pipeline()
+			.depthTest(true)
+			.vert(R"V0G0N(  
+				in vec3 aPosition;
+				in vec3 aNormal;
+				uniform mat4 uProjectionMatrix;
+				uniform mat4 uViewMatrix;
+				out vec3 vNormal;
+				void main () {
+					gl_Position = uProjectionMatrix * uViewMatrix * vec4(aPosition, 1.0);
+					vNormal = aNormal;
+				}
+				)V0G0N")
+			.frag(R"V0G0N(  
+				precision mediump float;
+				in vec3 vNormal;
+
+				out vec4 outColor;
+
+				void main () {
+					outColor.rgb = vNormal;
+					outColor.a = 1.0;
+				}
+				)V0G0N"))
+		.attributes({
+			{ "aPosition", &cubePosBuffer },
+			{ "aNormal", &cubeNormalBuffer }})
+		.indices(&cubeIndexBuffer)
+		.count(1)
+		.uniforms({
+			{ "uExample1", { 1.0f } },
+			{ "uExample2", { 1.0f, 2.0f } },
+			{ "uExample3", { 1.0f, 2.0f, 3.0f } },
+			{ "uExample4", { 1.0f, 2.0f, 1.0f, 5.0f } },
+			{ "uView", view },
+			});
+
+	reglCpp::context.frame([&clearCmd, &drawCmd]() {
+		reglCpp:context.submit(clearCmd);
+	
+
+		reglCpp::context.submit(drawCmd);
+
+	});
+	
 	static float c = 0.0f;
 	c += 0.11f;
 
@@ -852,6 +883,72 @@ void HandleInput() {
 	}
 
 	camera.Update(1.0f / (float)FRAME_RATE);
+}
+
+
+inline char* GetShaderLogInfo(GLuint shader) {
+	GLint len;
+	GLsizei actualLen;
+	GL_C(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len));
+	char* infoLog = new char[len];
+	GL_C(glGetShaderInfoLog(shader, len, &actualLen, infoLog));
+	return infoLog;
+}
+
+inline GLuint CreateShaderFromString(const std::string& shaderSource, const GLenum shaderType) {
+	GLuint shader;
+
+	GL_C(shader = glCreateShader(shaderType));
+	const char* c_str = shaderSource.c_str();
+	GL_C(glShaderSource(shader, 1, &c_str, NULL));
+	GL_C(glCompileShader(shader));
+
+	GLint compileStatus;
+	GL_C(glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus));
+	if (compileStatus != GL_TRUE) {
+		LOGI("Could not compile shader\n\n%s \n\n%s\n", shaderSource.c_str(),
+			GetShaderLogInfo(shader));
+		exit(1);
+	}
+
+	return shader;
+}
+
+inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& fsShader) {
+
+	bool useGl3 = true;// just hardcode this for now.
+
+	std::string prefix = "";
+
+	prefix += "#version 150\n";
+	prefix += "#define GL3\n";
+
+	prefix += std::string(R"(
+
+)");
+
+	GLuint vs = CreateShaderFromString(prefix + vsSource, GL_VERTEX_SHADER);
+	GLuint fs = CreateShaderFromString(prefix + fsShader, GL_FRAGMENT_SHADER);
+
+	GLuint shader = glCreateProgram();
+	glAttachShader(shader, vs);
+	glAttachShader(shader, fs);
+	glLinkProgram(shader);
+
+	GLint Result;
+	glGetProgramiv(shader, GL_LINK_STATUS, &Result);
+	if (Result == GL_FALSE) {
+		LOGI("Could not link shader \n\n%s\n", GetShaderLogInfo(shader));
+		exit(1);
+	}
+
+	glDetachShader(shader, vs);
+	glDetachShader(shader, fs);
+
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+
+	return shader;
 }
 
 void setupGraphics() {
