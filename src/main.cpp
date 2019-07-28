@@ -16,93 +16,84 @@ std::array<std::array<float, 4>, 4> toArr(const mat4 & matrix) {
 	return ret;
 }
 
+void demo() {
+	reglCpp::VertexBuffer cubePosBuffer;
+	reglCpp::VertexBuffer cubeNormalBuffer;
+	reglCpp::IndexBuffer cubeIndexBuffer;
 
-int main(int argc, char** argv) {
+	camera = Camera(vec3(-0.277534f, 0.885269f, 2.221981f), vec3(-0.008268f, -0.841857f, -0.539637f));
 
-	initGlfw([]() {
-
-		reglCpp::VertexBuffer cubePosBuffer;
-		reglCpp::VertexBuffer cubeNormalBuffer;
-		reglCpp::IndexBuffer cubeIndexBuffer;
-
-
-		camera = Camera(vec3(-0.277534f, 0.885269f, 2.221981f), vec3(-0.008268f, -0.841857f, -0.539637f));
-
-		std::vector<float> posData{
-	 0.0900000036f, -0.0900000036f, 1.69000006f,
-	 0.0900000036f,  0.0900000036f, 1.69000006f,
-	 -0.0900000036f, 0.0900000036f, 1.69000006f
+	std::vector<float> posData{
+		0.0900000036f, -0.0900000036f, 1.69000006f,
+		0.0900000036f,  0.0900000036f, 1.69000006f,
+		-0.0900000036f, 0.0900000036f, 1.69000006f
+	};
 
 
+	cubePosBuffer =
+		reglCpp::VertexBuffer()
+		.data(posData.data())
+		.length((unsigned int)posData.size() / 3)
+		.numComponents(3)
+		.name("cube normal buffer")
+		.finish();
+
+	std::vector<float> normalData{
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f,
+			0.0f, 0.0f, 1.0f
+	};
+
+	cubeNormalBuffer =
+		reglCpp::VertexBuffer()
+		.data(normalData.data())
+		.length((unsigned int)normalData.size() / 3)
+		.numComponents(3)
+		.name("cube normal buffer")
+		.finish();
+
+	std::vector<unsigned int> indexData{ 0, 1, 2 };
+
+	cubeIndexBuffer =
+		reglCpp::IndexBuffer()
+		.data(indexData.data())
+		.length((unsigned int)indexData.size() / 1)
+		.name("cube index buffer")
+		.finish();
+
+
+	startRenderLoop([&]() {
+
+		using namespace reglCpp;
+
+		float zNear = 0.1f;
+		float zFar = 8000.0f;
+		float ratio = (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT;
+		mat4 projectionMatrix = mat4::perspective(0.872665f * 0.5f, (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT, zNear, zFar);
+
+		mat4 viewMatrix = camera.GetViewMatrix();
+
+		mat4 modelMatrix;
+
+		mat4 viewProjectionMatrix = viewMatrix * projectionMatrix;
+
+		std::array<std::array<float, 4>, 4> view{
+			{
+			{ 1.0f, 2.0f, 1.0f, 5.0f },
+			{ 1.0f, 2.0f, 1.0f, 5.0f },
+			{ 1.0f, 2.0f, 1.0f, 5.0f },
+			{ 1.0f, 2.0f, 1.0f, 5.0f },
+			}
 		};
+		std::vector<Uniform> lol;
 
-		cubePosBuffer =
-			reglCpp::VertexBuffer()
-			.data(posData.data())
-			.length((unsigned int)posData.size() / 3)
-			.numComponents(3)
-			.name("cube normal buffer")
-			.finish();
+		Command drawCmd = Command()
+			.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
+			.clearDepth(1.0f)
 
-		std::vector<float> normalData{
-				0.0f, 0.0f, 1.0f,
-				0.0f, 0.0f, 1.0f,
-				0.0f, 0.0f, 1.0f
-		};
-
-		cubeNormalBuffer =
-			reglCpp::VertexBuffer()
-			.data(normalData.data())
-			.length((unsigned int)normalData.size() / 3)
-			.numComponents(3)
-			.name("cube normal buffer")
-			.finish();
-
-		std::vector<unsigned int> indexData{ 0, 1, 2 };
-
-		cubeIndexBuffer =
-			reglCpp::IndexBuffer()
-			.data(indexData.data())
-			.length((unsigned int)indexData.size() / 1)
-			.name("cube index buffer")
-			.finish();
-
-
-		startRenderLoop([&]() {
-			float zNear = 0.1f;
-			float zFar = 8000.0f;
-			float fovy = 50.0f;
-
-			using namespace reglCpp;
-
-			mat4 viewMatrix = camera.GetViewMatrix();
-
-			float ratio = (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT;
-
-			mat4 projectionMatrix = mat4::perspective(0.872665f * 0.5f, (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT, zNear, zFar);
-
-			mat4 modelMatrix;
-
-			mat4 viewProjectionMatrix = viewMatrix * projectionMatrix;
-
-			std::array<std::array<float, 4>, 4> view{
-				{
-				{ 1.0f, 2.0f, 1.0f, 5.0f },
-				{ 1.0f, 2.0f, 1.0f, 5.0f },
-				{ 1.0f, 2.0f, 1.0f, 5.0f },
-				{ 1.0f, 2.0f, 1.0f, 5.0f },
-				}
-			};
-			std::vector<Uniform> lol;
-
-
-			Command drawCmd = Command()
-				.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
-				.clearDepth(1.0f)
-
-				.viewport(0, 0, fbWidth, fbHeight)
-				.depthTest(true)
-				.vert(R"V0G0N(  
+			.viewport(0, 0, fbWidth, fbHeight)
+			.depthTest(true)
+			.vert(R"V0G0N(  
 in vec3 aPosition;
 in vec3 aNormal;
 
@@ -120,7 +111,7 @@ void main()
 }
 
 				)V0G0N")
-				.frag(R"V0G0N(  
+			.frag(R"V0G0N(  
 
 in vec3 fsNormal;
 in vec3 fsPos;
@@ -136,24 +127,23 @@ void main()
 }
 
 				)V0G0N")
-				.attributes({
-					{ "aPosition", &cubePosBuffer },
-					{ "aNormal", &cubeNormalBuffer } })
-					.indices(&cubeIndexBuffer)
-				.count(3)
-				.uniforms({
-					{ "uModifier", { 1.0f, 1.0f, 0.2f } },
-					{ "uModelMatrix", toArr(modelMatrix) },
-					{ "uViewProjectionMatrix", toArr(viewProjectionMatrix) },
-					});
-
-			reglCpp::context.frame([&drawCmd]() {
-				reglCpp::context.submit(drawCmd);
+			.attributes({
+				{ "aPosition", &cubePosBuffer },
+				{ "aNormal", &cubeNormalBuffer } })
+				.indices(&cubeIndexBuffer)
+			.count(3)
+			.uniforms({
+				{ "uModifier", { 1.0f, 1.0f, 0.2f } },
+				{ "uModelMatrix", toArr(modelMatrix) },
+				{ "uViewProjectionMatrix", toArr(viewProjectionMatrix) },
 				});
+		
+		reglCpp::context.frame([&drawCmd]() {
+			reglCpp::context.submit(drawCmd);
+			});
 		});
+}
 
-	});
-
-	
-
+int main(int argc, char** argv) {
+	initGlfw(demo);
 }
