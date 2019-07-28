@@ -65,13 +65,6 @@ void dpop() {
 #endif
 }
 
-float Time() {
-	clock_t startcputime = std::clock();
-	//  LOG_I("startcputime: %ld", startcputime);
-	float cpu_duration = (float)(startcputime) / (float)CLOCKS_PER_SEC;
-	return cpu_duration;
-}
-
 class vec2 {
 public:
 	float x, y;
@@ -543,7 +536,6 @@ public:
 				viewDir.x, viewDir.y, viewDir.z
 			);
 		}
-
 	}
 
 	vec3 GetPosition() const {
@@ -563,126 +555,7 @@ GLuint vao;
 int FRAME_RATE = 30;
 int fbWidth, fbHeight;
 
-struct GeoVertex {
-	float x, y, z; // position
-	float nx, ny, nz; // normal
-};
-
-struct FullscreenVertex {
-	float x, y, z, w;
-};
-
-struct Tri {
-	GLuint indices[3];
-};
-
-struct Mesh {
-	GLuint vertexVbo;
-	GLuint indexVbo;
-	GLuint indexCount;
-
-	void Create(const std::vector<GeoVertex>& vertices, const std::vector<Tri>& indices) {
-		// upload geometry to GPU.
-		GL_C(glGenBuffers(1, &vertexVbo));
-		GL_C(glBindBuffer(GL_ARRAY_BUFFER, vertexVbo));
-		GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(GeoVertex)*vertices.size(), (float*)vertices.data(), GL_STATIC_DRAW));
-
-		GL_C(glGenBuffers(1, &indexVbo));
-		GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexVbo));
-		GL_C(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Tri)*indices.size(), indices.data(), GL_STATIC_DRAW));
-
-		indexCount = (GLuint)indices.size() * 3;
-	}
-};
-
-Mesh boxesMesh;
-
-GLuint geoShader;
-GLuint gsViewProjectionMatrixLocation;
-GLuint gsModelMatrixLocation;
-GLint gsPositionAttribLocation;
-GLint gsNormalAttribLocation;
-
-GLuint frameFbo;
-
-Camera camera(vec3(0,0,0), vec3(0,0,0));
-
-void AddBox(
-	float ox, float oy, float oz,
-	float sx, float sy, float sz,
-	std::vector<GeoVertex>& vertices, std::vector<Tri>& indices) {
-
-	GLuint ibeg = (GLuint)vertices.size();
-
-	vertices.push_back(GeoVertex{ +0.5f, -0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
-	vertices.push_back(GeoVertex{ +0.5f, +0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
-	vertices.push_back(GeoVertex{ -0.5f, +0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
-
-	
-	/*
-	vertices.push_back(GeoVertex{ -0.5f, +0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
-	vertices.push_back(GeoVertex{ +0.5f, +0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
-	vertices.push_back(GeoVertex{ +0.5f, -0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
-
-	
-	vertices.push_back(GeoVertex{ -0.5f, -0.5f, +0.5f, +0.0f, +0.0f, +1.0f });
-
-	vertices.push_back(GeoVertex{ +0.5f, +0.5f, +0.5f, +1.0f, +0.0f, +0.0f });
-	vertices.push_back(GeoVertex{ +0.5f, +0.5f, -0.5f, +1.0f, +0.0f, +0.0f });
-	vertices.push_back(GeoVertex{ +0.5f, -0.5f, -0.5f, +1.0f, +0.0f, +0.0f });
-	vertices.push_back(GeoVertex{ +0.5f, -0.5f, +0.5f, +1.0f, +0.0f, +0.0f });
-
-	vertices.push_back(GeoVertex{ +0.5f, +0.5f, -0.5f, +0.0f, +0.0f, -1.0f });
-	vertices.push_back(GeoVertex{ -0.5f, +0.5f, -0.5f, +0.0f, +0.0f, -1.0f });
-	vertices.push_back(GeoVertex{ -0.5f, -0.5f, -0.5f, +0.0f, +0.0f, -1.0f });
-	vertices.push_back(GeoVertex{ +0.5f, -0.5f, -0.5f, +0.0f, +0.0f, -1.0f });
-
-	vertices.push_back(GeoVertex{ -0.5f, +0.5f, -0.5f, -1.0f, +0.0f, +0.0f });
-	vertices.push_back(GeoVertex{ -0.5f, +0.5f, +0.5f, -1.0f, +0.0f, +0.0f });
-	vertices.push_back(GeoVertex{ -0.5f, -0.5f, +0.5f, -1.0f, +0.0f, +0.0f });
-	vertices.push_back(GeoVertex{ -0.5f, -0.5f, -0.5f, -1.0f, +0.0f, +0.0f });
-
-	vertices.push_back(GeoVertex{ -0.5f, +0.5f, -0.5f, +0.0f, +1.0f, +0.0f });
-	vertices.push_back(GeoVertex{ +0.5f, +0.5f, -0.5f, +0.0f, +1.0f, +0.0f });
-	vertices.push_back(GeoVertex{ +0.5f, +0.5f, +0.5f, +0.0f, +1.0f, +0.0f });
-	vertices.push_back(GeoVertex{ -0.5f, +0.5f, +0.5f, +0.0f, +1.0f, +0.0f });
-
-	vertices.push_back(GeoVertex{ -0.5f, -0.5f, -0.5f, +0.0f, -1.0f, +0.0f });
-	vertices.push_back(GeoVertex{ +0.5f, -0.5f, -0.5f, +0.0f, -1.0f, +0.0f });
-	vertices.push_back(GeoVertex{ +0.5f, -0.5f, +0.5f, +0.0f, -1.0f, +0.0f });
-	vertices.push_back(GeoVertex{ -0.5f, -0.5f, +0.5f, +0.0f, -1.0f, +0.0f });
-	*/
-
-	int iend = (GLuint)vertices.size();
-
-	for (int i = ibeg; i < iend; ++i) {
-		GeoVertex& v = vertices[i];
-
-		v.x = (v.x + 0.5f) * 2.0f * sx + (ox - sx);
-		v.y = (v.y + 0.5f) * 2.0f * sy + (oy - sy);
-		v.z = (v.z + 0.5f) * 2.0f * sz + (oz - sz);
-	}
-
-	//indices.push_back(Tri{ 2 + ibeg,  1 + ibeg,  0 + ibeg });
-	indices.push_back(Tri{ 0 + ibeg,  1 + ibeg,  2 + ibeg });
-
-	/*
-	indices.push_back(Tri{ 2 + ibeg,  0 + ibeg,  3 + ibeg });
-	
-	indices.push_back(Tri{ 6 + ibeg,  5 + ibeg,  4 + ibeg });
-	indices.push_back(Tri{ 6 + ibeg,  4 + ibeg,  7 + ibeg });
-
-	
-	indices.push_back(Tri{ 10 + ibeg,  9 + ibeg,  8 + ibeg });
-	indices.push_back(Tri{ 10 + ibeg,  8 + ibeg, 11 + ibeg });
-	indices.push_back(Tri{ 14 + ibeg, 13 + ibeg, 12 + ibeg });
-	indices.push_back(Tri{ 14 + ibeg, 12 + ibeg, 15 + ibeg });
-	indices.push_back(Tri{ 18 + ibeg, 17 + ibeg, 16 + ibeg });
-	indices.push_back(Tri{ 18 + ibeg, 16 + ibeg, 19 + ibeg });
-	indices.push_back(Tri{ 20 + ibeg, 21 + ibeg, 22 + ibeg });
-	indices.push_back(Tri{ 23 + ibeg, 20 + ibeg, 22 + ibeg });
-	*/
-}
+Camera camera(vec3(0, 0, 0), vec3(0, 0, 0));
 
 void error_callback(int error, const char* description)
 {
@@ -818,80 +691,7 @@ void main()
 	
 	reglCpp::context.frame([&drawCmd]() {
 		reglCpp::context.submit(drawCmd);
-
 	});
-	return;
-
-	
-	static float c = 0.0f;
-	c += 0.11f;
-
-	// setup matrices.
-
-	// setup default GL state.
-	GL_C(glEnable(GL_DEPTH_TEST));
-	GL_C(glDepthMask(true));
-	GL_C(glDisable(GL_BLEND));
-	GL_C(glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
-	GL_C(glEnable(GL_CULL_FACE));
-	GL_C(glFrontFace(GL_CCW));
-	GL_C(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-	GL_C(glUseProgram(0));
-	GL_C(glBindTexture(GL_TEXTURE_2D, 0));
-	GL_C(glDepthFunc(GL_LESS));
-
-
-	GL_C(glViewport(0, 0, fbWidth, fbHeight));
-	
-	mat4 Vp;
-
-	// setup matrices, and miscellaneous stuff.
-	{	
-		float ratio = (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT;
-	
-		mat4 projection = mat4::perspective(0.872665f * 0.5f, (float)(fbWidth) / (float)fbHeight, zNear, zFar);
-		
-		// save away the unjittered projection matrix.	
-		mat4 unjitteredProjection = projection;
-
-		// 	mat4 viewMatrix = camera.GetViewMatrix();
-
-		Vp = viewMatrix * projection;		
-		viewMatrix = camera.GetViewMatrix();	
-	}
-
-	// render to g-buffer
-	{
-		GL_C(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
-		GL_C(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-		GL_C(glEnable(GL_DEPTH_TEST));
-		GL_C(glDepthMask(true));
-		GL_C(glFrontFace(GL_CCW));
-
-		GL_C(glUseProgram(geoShader)); // "output geometry to gbuffer" shader
-		GL_C(glUniformMatrix4fv(gsViewProjectionMatrixLocation, 1, GL_FALSE, (GLfloat*)Vp.m));
-
-		mat4 id;
-		GL_C(glUniformMatrix4fv(gsModelMatrixLocation, 1, GL_FALSE, (GLfloat*)id.m));
-
-		{
-			GL_C(glBindBuffer(GL_ARRAY_BUFFER, boxesMesh.vertexVbo));
-
-			GL_C(glEnableVertexAttribArray((GLuint)gsPositionAttribLocation));
-			GL_C(glVertexAttribPointer((GLuint)gsPositionAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(GeoVertex), (void*)0));
-
-			GL_C(glEnableVertexAttribArray((GLuint)gsNormalAttribLocation));
-			GL_C(glVertexAttribPointer((GLuint)gsNormalAttribLocation, 3, GL_FLOAT, GL_FALSE, sizeof(GeoVertex), (void*)(sizeof(float) * 3)));
-
-
-			GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boxesMesh.indexVbo));
-
-			glDrawElements(GL_TRIANGLES, boxesMesh.indexCount, GL_UNSIGNED_INT, 0);
-		}
-	}
-	
-
-
 }
 
 //take the ratio of width/height into account for the calculation. may result in less banding artifacts.
@@ -905,138 +705,11 @@ void HandleInput() {
 	camera.Update(1.0f / (float)FRAME_RATE);
 }
 
-
-inline char* GetShaderLogInfo(GLuint shader) {
-	GLint len;
-	GLsizei actualLen;
-	GL_C(glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len));
-	char* infoLog = new char[len];
-	GL_C(glGetShaderInfoLog(shader, len, &actualLen, infoLog));
-	return infoLog;
-}
-
-inline GLuint CreateShaderFromString(const std::string& shaderSource, const GLenum shaderType) {
-	GLuint shader;
-
-	GL_C(shader = glCreateShader(shaderType));
-	const char* c_str = shaderSource.c_str();
-	GL_C(glShaderSource(shader, 1, &c_str, NULL));
-	GL_C(glCompileShader(shader));
-
-	GLint compileStatus;
-	GL_C(glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus));
-	if (compileStatus != GL_TRUE) {
-		LOGI("Could not compile shader\n\n%s \n\n%s\n", shaderSource.c_str(),
-			GetShaderLogInfo(shader));
-		exit(1);
-	}
-
-	return shader;
-}
-
-inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& fsShader) {
-
-	bool useGl3 = true;// just hardcode this for now.
-
-	std::string prefix = "";
-
-	prefix += "#version 150\n";
-	prefix += "#define GL3\n";
-
-	prefix += std::string(R"(
-
-)");
-
-	GLuint vs = CreateShaderFromString(prefix + vsSource, GL_VERTEX_SHADER);
-	GLuint fs = CreateShaderFromString(prefix + fsShader, GL_FRAGMENT_SHADER);
-
-	GLuint shader = glCreateProgram();
-	glAttachShader(shader, vs);
-	glAttachShader(shader, fs);
-	glLinkProgram(shader);
-
-	GLint Result;
-	glGetProgramiv(shader, GL_LINK_STATUS, &Result);
-	if (Result == GL_FALSE) {
-		LOGI("Could not link shader \n\n%s\n", GetShaderLogInfo(shader));
-		exit(1);
-	}
-
-	glDetachShader(shader, vs);
-	glDetachShader(shader, fs);
-
-	glDeleteShader(vs);
-	glDeleteShader(fs);
-
-	return shader;
-}
-
 void setupGraphics() {
 	InitGlfw();
 
-	// shader for rendering geometry.
-	// it's basically just a pass-through shader that writes to the g-buffer
-	geoShader = LoadNormalShader(
-		std::string(R"(
-in vec3 vertexPosition;
-in vec3 vertexNormal;
-
-out vec3 fsNormal;
-out vec3 fsPos;
-
-uniform mat4 viewProjectionMatrix;
-uniform mat4 modelMatrix;
-
-void main()
-{
-    fsNormal =  (modelMatrix * vec4(vertexNormal, 0.0)).xyz;
-    gl_Position = viewProjectionMatrix * modelMatrix * vec4(vertexPosition, 1.0);
-    fsPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz;
-}
-)"),
-
-
-std::string(R"(
-in vec3 fsNormal;
-in vec3 fsPos;
-
-out vec4 fragData0;
-
-void main()
-{
-    fragData0 = vec4(fsNormal.xyz, 1.0);
-}
-)" ) 
-);
-
-	// boxes geometry.
-	{
-		std::vector<GeoVertex> vertices;
-		std::vector<Tri> indices;
-
-		AddBox(
-			0.0f, 0.0f, +1.6f,
-			0.09f, 0.09f, 0.09f,
-			vertices, indices);
-
-		boxesMesh.Create(vertices, indices);
-	}
-
-	// load all locations from shaders.
-	{
-		GL_C(gsViewProjectionMatrixLocation = glGetUniformLocation(geoShader, "viewProjectionMatrix"));
-		GL_C(gsModelMatrixLocation = glGetUniformLocation(geoShader, "modelMatrix"));
-			
-		GL_C(gsPositionAttribLocation = glGetAttribLocation(geoShader, "vertexPosition"));
-		GL_C(gsNormalAttribLocation = glGetAttribLocation(geoShader, "vertexNormal"));
-	}
-
-
-	camera = Camera(
-
-		vec3(-0.277534f, 0.885269f, 2.221981f), vec3(-0.008268f, -0.841857f, -0.539637f)
-);
-
+	camera = Camera(vec3(-0.277534f, 0.885269f, 2.221981f), vec3(-0.008268f, -0.841857f, -0.539637f));
+	
 	std::vector<float> posData{
  0.0900000036f, -0.0900000036f, 1.69000006f,
  0.0900000036f,  0.0900000036f, 1.69000006f,
@@ -1075,6 +748,4 @@ void main()
 		.length((unsigned int)indexData.size() / 1)
 		.name("cube index buffer")
 		.finish();
-
-
 }
