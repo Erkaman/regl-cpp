@@ -7,6 +7,7 @@
 #include <stack>
 #include <map>
 
+
 namespace reglCpp
 {
 	

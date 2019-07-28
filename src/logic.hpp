@@ -1015,8 +1015,8 @@ void main()
 		std::vector<Tri> indices;
 
 		AddBox(
-			0.0, 0.0f, +1.6f,
-			0.09f, 0.09, 0.09f,
+			0.0f, 0.0f, +1.6f,
+			0.09f, 0.09f, 0.09f,
 			vertices, indices);
 
 		boxesMesh.Create(vertices, indices);
@@ -1041,6 +1041,7 @@ void main()
  0.0900000036f, -0.0900000036f, 1.69000006f,
  0.0900000036f,  0.0900000036f, 1.69000006f,
  -0.0900000036f, 0.0900000036f, 1.69000006f
+
 
 	};
 
@@ -1071,7 +1072,7 @@ void main()
 	cubeIndexBuffer =
 		reglCpp::IndexBuffer()
 		.data(indexData.data())
-		.length(indexData.size() / 1)
+		.length((unsigned int)indexData.size() / 1)
 		.name("cube index buffer")
 		.finish();
 

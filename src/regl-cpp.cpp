@@ -434,6 +434,7 @@ void reglCppContext::submitWithContextState(contextState state) {
 			
 		}
 
+
 		if (state.mIndices != nullptr) {
 			if (!state.mIndices->mBufferObject.second) {
 				printf("forgot to call '.finish()' on the buffer named '%s'\n", state.mIndices->mName.c_str());
