@@ -130,6 +130,11 @@ VertexBuffer& VertexBuffer::finish() {
 	return *this;
 };
 
+void VertexBuffer::dispose() {
+	GL_C(glDeleteBuffers(1, &mBufferObject.first));
+	mBufferObject.first = false;
+}
+
 IndexBuffer& IndexBuffer::finish() {
 	int glUsage;
 
@@ -165,6 +170,11 @@ IndexBuffer& IndexBuffer::finish() {
 	
 	return *this;
 };
+
+void IndexBuffer::dispose() {
+	GL_C(glDeleteBuffers(1, &mBufferObject.first));
+	mBufferObject.first = false;
+}
 
 
 inline char* GetShaderLogInfo(GLuint shader) {

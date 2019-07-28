@@ -111,13 +111,15 @@ struct VertexBuffer {
 		mUsage = usage;
 		return *this;
 	}
-
+		
 	VertexBuffer& name(std::string name) {
 		mName = name;
 		return *this;
 	}
 
 	VertexBuffer& finish();
+	void dispose();
+
 };
 
 struct IndexBuffer {
@@ -154,7 +156,9 @@ struct IndexBuffer {
 	}
 
 	IndexBuffer& finish();	
+	void dispose();
 };
+
 
 struct Attribute {
 	std::string mKey;
