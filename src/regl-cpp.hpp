@@ -121,10 +121,18 @@ struct VertexBuffer {
 
 struct IndexBuffer {
 	// should probably be a pointer to data instead.
-	std::vector<int> mData;
-	int mLength = -1; // if -1, just use length of mData.
+	unsigned int* mData = nullptr;
 
-	IndexBuffer& data(const std::vector<int> data) {
+	std::pair<unsigned int, bool> mBufferObject = { -1, false };
+	int mLength = -1; 
+	std::string mName = "unnnamed"; // can be useful setting for debugging.
+
+	/*
+	either 'static', 'dynamic' or 'stream'
+	*/
+	std::string mUsage = "static";
+
+	IndexBuffer& data(unsigned int* data) {
 		mData = data;
 		return *this;
 	}
@@ -134,10 +142,17 @@ struct IndexBuffer {
 		return *this;
 	}
 
-	IndexBuffer& finish() {
-		// TODO: actually allocate GL data.
+	IndexBuffer& usage(std::string usage) {
+		mUsage = usage;
 		return *this;
-	};
+	}
+
+	IndexBuffer& name(std::string name) {
+		mName = name;
+		return *this;
+	}
+
+	IndexBuffer& finish();	
 };
 
 struct Attribute {

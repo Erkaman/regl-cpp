@@ -738,6 +738,7 @@ std::array<std::array<float, 4>, 4> toArr(const mat4& matrix) {
 
 reglCpp::VertexBuffer cubePosBuffer;
 reglCpp::VertexBuffer cubeNormalBuffer;
+reglCpp::IndexBuffer cubeIndexBuffer;
 
 void renderFrame() {
 
@@ -763,10 +764,6 @@ void renderFrame() {
 	};
 	std::vector<Uniform> lol;
 
-	IndexBuffer cubeIndexBuffer =
-		IndexBuffer()
-		.data({0, 1, 2 })
-		.finish();
 
 	Command drawCmd = Command()
 		.clearColor({ 0.0f, 0.0f, 0.0f, 1.0f })
@@ -803,8 +800,7 @@ uniform vec3 uModifier;
 
 void main()
 {
-//    fragData0 = vec4(fsNormal.xyz * uModifier, 1.0);
-    fragData0 = vec4(1.0, 0.0, 0.0, 1.0);
+    fragData0 = vec4(fsNormal.xyz * uModifier, 1.0);
 
 }
 
@@ -815,7 +811,7 @@ void main()
 		.indices(&cubeIndexBuffer)
 		.count(3)
 		.uniforms({
-			{ "uModifier", { 1.0f, 1.0f, 1.0f } },
+			{ "uModifier", { 1.0f, 1.0f, 0.2f } },
 			{ "uModelMatrix", toArr(modelMatrix) },
 			{ "uViewProjectionMatrix", toArr(viewProjectionMatrix) },
 			});
@@ -1051,7 +1047,7 @@ void main()
 	cubePosBuffer =
 		reglCpp::VertexBuffer()
 		.data(posData.data())
-		.length(3)
+		.length(posData.size() / 3)
 		.numComponents(3)
 		.name("cube normal buffer")
 		.finish();
@@ -1065,9 +1061,18 @@ void main()
 	cubeNormalBuffer =
 		reglCpp::VertexBuffer()
 		.data(normalData.data())
-		.length(3)
+		.length(normalData.size() / 3)
 		.numComponents(3)
 		.name("cube normal buffer")
+		.finish();
+
+	std::vector<unsigned int> indexData{ 0, 1, 2};
+	
+	cubeIndexBuffer =
+		reglCpp::IndexBuffer()
+		.data(indexData.data())
+		.length(indexData.size() / 1)
+		.name("cube index buffer")
 		.finish();
 
 

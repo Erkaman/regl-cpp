@@ -125,11 +125,47 @@ VertexBuffer& VertexBuffer::finish() {
 	GL_C(glBindBuffer(GL_ARRAY_BUFFER, mBufferObject.first));
 	GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(float) * mNumComponents * mLength, (float*)mData, glUsage));
 	GL_C(glBindBuffer(GL_ARRAY_BUFFER, 0));
-	int siz = sizeof(float) * mNumComponents * mLength ;
 	mBufferObject.second = true; // signify it was properly finished.
 
 	return *this;
 };
+
+IndexBuffer& IndexBuffer::finish() {
+	int glUsage;
+
+	if (mUsage == "static") {
+		glUsage = GL_STATIC_DRAW;
+	}
+	else if (mUsage == "dynamic") {
+		glUsage = GL_DYNAMIC_DRAW;
+	}
+	else if (mUsage == "stream") {
+		glUsage = GL_STREAM_DRAW;
+	}
+	else {
+		printf("'%s' is not a valid valid of index buffer 'usage'\n", mUsage.c_str());
+		exit(1);
+	}
+
+	if (mLength < 0) {
+		printf("'%d' is not a valid index buffer length\n", mLength);
+		exit(1);
+	}
+	
+	if (mData == nullptr) {
+		printf("Need to specify data for index buffer\n");
+		exit(1);
+	}
+	
+	GL_C(glGenBuffers(1, &mBufferObject.first));
+	GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mBufferObject.first));
+	GL_C(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * mLength, (float*)mData, glUsage));
+	GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+	mBufferObject.second = true; // signify it was properly finished.
+	
+	return *this;
+};
+
 
 inline char* GetShaderLogInfo(GLuint shader) {
 	GLint len;
@@ -398,8 +434,15 @@ void reglCppContext::submitWithContextState(contextState state) {
 			
 		}
 
-		if (state.mIndices == nullptr) {
+		if (state.mIndices != nullptr) {
+			if (!state.mIndices->mBufferObject.second) {
+				printf("forgot to call '.finish()' on the buffer named '%s'\n", state.mIndices->mName.c_str());
+				exit(1);
+			}
 			
+			GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state.mIndices->mBufferObject.first));
+			GL_C(glDrawElements(GL_TRIANGLES, state.mCount, GL_UNSIGNED_INT, 0));
+
 		}
 		else {
 			// TODO: handle other things than triangles as well.
