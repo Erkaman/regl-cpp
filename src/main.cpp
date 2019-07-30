@@ -16,19 +16,75 @@ std::array<std::array<float, 4>, 4> toArr(const mat4 & matrix) {
 	return ret;
 }
 
+
+void cubeData(
+	std::vector<float>& posData,
+	std::vector<float>& uvData,
+	std::vector<float>& normalData,
+	std::vector<unsigned int>& indexData) {
+
+	posData = std::vector<float>{
+		-0.5, +0.5, +0.5,  +0.5, +0.5, +0.5,  +0.5, -0.5, +0.5,  -0.5, -0.5, +0.5, // positive z face.
+		+0.5, +0.5, +0.5,  +0.5, +0.5, -0.5,  +0.5, -0.5, -0.5,  +0.5, -0.5, +0.5, // positive x face
+		+0.5, +0.5, -0.5,  -0.5, +0.5, -0.5,  -0.5, -0.5, -0.5,  +0.5, -0.5, -0.5, // negative z face
+		-0.5, +0.5, -0.5,  -0.5, +0.5, +0.5,  -0.5, -0.5, +0.5,  -0.5, -0.5, -0.5, // negative x face.
+		-0.5, +0.5, -0.5,  +0.5, +0.5, -0.5,  +0.5, +0.5, +0.5,  -0.5, +0.5, +0.5, // top face
+		-0.5, -0.5, -0.5,  +0.5, -0.5, -0.5,  +0.5, -0.5, +0.5,  -0.5, -0.5, +0.5  // bottom face
+	};
+
+
+	normalData = std::vector<float>{
+		// side faces
+		0.0, 0.0, +1.0,  0.0, 0.0, +1.0,  0.0, 0.0, +1.0,  0.0, 0.0, +1.0,
+		+1.0, 0.0, 0.0,  +1.0, 0.0, 0.0,  +1.0, 0.0, 0.0,  +1.0, 0.0, 0.0,
+		0.0, 0.0, -1.0,  0.0, 0.0, -1.0,  0.0, 0.0, -1.0,  0.0, 0.0, -1.0,
+		-1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,
+		// top
+		0.0, +1.0, 0.0,  0.0, +1.0, 0.0,  0.0, +1.0, 0.0,  0.0, +1.0, 0.0,
+		// bottom
+		0.0, -1.0, 0.0,  0.0, -1.0, 0.0,  0.0, -1.0, 0.0,  0.0, -1.0, 0.0
+	};
+
+	uvData = std::vector<float>{
+			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // positive z face.
+			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // positive x face.
+			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // negative z face.
+			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // negative x face.
+			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // top face
+			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0  // bottom face
+	};
+
+	indexData = std::vector<unsigned int> {
+		2, 1, 0, 2, 0, 3,       // positive z face.
+		6, 5, 4, 6, 4, 7,       // positive x face.
+
+		10, 9, 8, 10, 8, 11,    // negative z face.
+		14, 13, 12, 14, 12, 15, // negative x face.
+		18, 17, 16, 18, 16, 19, // top face.
+		20, 21, 22, 23, 20, 22  // bottom face
+	};
+
+}
+
+
 void demo() {
 	reglCpp::VertexBuffer cubePosBuffer;
 	reglCpp::VertexBuffer cubeNormalBuffer;
+	reglCpp::VertexBuffer cubeUvBuffer;
 	reglCpp::IndexBuffer cubeIndexBuffer;
 
 	camera = Camera(vec3(-0.277534f, 0.885269f, 2.221981f), vec3(-0.008268f, -0.841857f, -0.539637f));
 
-	std::vector<float> posData{
-		0.0900000036f, -0.0900000036f, 1.69000006f,
-		0.0900000036f,  0.0900000036f, 1.69000006f,
-		-0.0900000036f, 0.0900000036f, 1.69000006f
-	};
+	std::vector<float> posData;
+	std::vector<float> normalData;
+	std::vector<float> uvData;
+	std::vector<unsigned int> indexData;
 
+	cubeData(
+		posData,
+		uvData,
+		normalData,
+		indexData);
 
 	cubePosBuffer =
 		reglCpp::VertexBuffer()
@@ -38,12 +94,6 @@ void demo() {
 		.name("cube normal buffer")
 		.finish();
 
-	std::vector<float> normalData{
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f,
-			0.0f, 0.0f, 1.0f
-	};
-
 	cubeNormalBuffer =
 		reglCpp::VertexBuffer()
 		.data(normalData.data())
@@ -51,8 +101,15 @@ void demo() {
 		.numComponents(3)
 		.name("cube normal buffer")
 		.finish();
+	
+	cubeUvBuffer =
+		reglCpp::VertexBuffer()
+		.data(uvData.data())
+		.length((unsigned int)uvData.size() / 2)
+		.numComponents(2)
+		.name("cube uv buffer")
+		.finish();
 
-	std::vector<unsigned int> indexData{ 0, 1, 2 };
 
 	cubeIndexBuffer =
 		reglCpp::IndexBuffer()
@@ -60,7 +117,6 @@ void demo() {
 		.length((unsigned int)indexData.size() / 1)
 		.name("cube index buffer")
 		.finish();
-
 
 	startRenderLoop([&]() {
 
@@ -97,9 +153,11 @@ void demo() {
 			.vert(R"V0G0N(  
 in vec3 aPosition;
 in vec3 aNormal;
+in vec2 aUv;
 
 out vec3 fsNormal;
 out vec3 fsPos;
+out vec2 fsUv;
 
 uniform mat4 uViewProjectionMatrix;
 uniform mat4 uModelMatrix;
@@ -107,6 +165,7 @@ uniform mat4 uModelMatrix;
 void main()
 {
     fsNormal =  (uModelMatrix * vec4(aNormal, 0.0)).xyz;
+	fsUv = aUv;
     gl_Position = uViewProjectionMatrix * uModelMatrix * vec4(aPosition, 1.0);
     fsPos = (uModelMatrix * vec4(aPosition, 1.0)).xyz;
 }
@@ -116,6 +175,7 @@ void main()
 
 in vec3 fsNormal;
 in vec3 fsPos;
+in vec2 fsUv;
 
 out vec4 fragData0;
 
@@ -123,33 +183,31 @@ uniform vec3 uModifier;
 
 void main()
 {
-    fragData0 = vec4(fsNormal.xyz * uModifier, 1.0);
-
+    fragData0 = vec4(fsUv, 0.0, 1.0);
 }
 
 				)V0G0N")
-			.attributes({
-				{ "aPosition", &cubePosBuffer },
-				{ "aNormal", &cubeNormalBuffer } })
-				.indices(&cubeIndexBuffer)
-			.count(3)
 			.uniforms({
 				{ "uViewProjectionMatrix", toArr(viewProjectionMatrix) },
-				{ "uModifier",{1.0f, 1.0f, 0.3f} },
-
 				});
 		
-		reglCpp::context.frame([&baseCmd, &clearCmd]() {
+		reglCpp::context.frame([&]() {
 			
 			reglCpp::context.submit(clearCmd);
 			
-			reglCpp::context.submit(baseCmd, []() {
+			reglCpp::context.submit(baseCmd, [&]() {
 			
 				{
 					mat4 modelMatrix;
 					modelMatrix.m[3][0] = -0.5f;
 
 					Command triCmd = Command()
+						.attributes({
+							{ "aPosition", &cubePosBuffer },
+							{ "aUv", &cubeUvBuffer },
+							{ "aNormal", &cubeNormalBuffer } })
+						.indices(&cubeIndexBuffer)
+						.count(indexData.size())
 						.uniforms({
 							{ "uModelMatrix", toArr(modelMatrix) },
 							});
@@ -157,20 +215,7 @@ void main()
 					reglCpp::context.submit(triCmd);
 				}
 
-				{
-					mat4 modelMatrix = mat4();
-					modelMatrix.m[3][0] = +0.5f;
-
-					Command triCmd = Command()
-						.uniforms({
-							{ "uModelMatrix", toArr(modelMatrix) },
-							});
-
-					reglCpp::context.submit(triCmd);
-				}
-			});
-			
-		
+			});	
 		});
 	});
 	
