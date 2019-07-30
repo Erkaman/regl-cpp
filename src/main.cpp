@@ -46,12 +46,12 @@ void cubeData(
 	};
 
 	uvData = std::vector<float>{
-			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // positive z face.
-			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // positive x face.
-			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // negative z face.
-			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // negative x face.
-			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // top face
-			0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0  // bottom face
+			0.0, 0.0, 4.0, 0.0, 4.0, 4.0, 0.0, 4.0, // positive z face.
+			0.0, 0.0, 4.0, 0.0, 4.0, 4.0, 0.0, 4.0, // positive x face.
+			0.0, 0.0, 4.0, 0.0, 4.0, 4.0, 0.0, 4.0, // negative z face.
+			0.0, 0.0, 4.0, 0.0, 4.0, 4.0, 0.0, 4.0, // negative x face.
+			0.0, 0.0, 4.0, 0.0, 4.0, 4.0, 0.0, 4.0, // top face
+			0.0, 0.0, 4.0, 0.0, 4.0, 4.0, 0.0, 4.0  // bottom face
 	};
 
 	indexData = std::vector<unsigned int> {
@@ -110,7 +110,6 @@ void demo() {
 		.name("cube uv buffer")
 		.finish();
 
-
 	cubeIndexBuffer =
 		reglCpp::IndexBuffer()
 		.data(indexData.data())
@@ -118,6 +117,30 @@ void demo() {
 		.name("cube index buffer")
 		.finish();
 
+	reglCpp::Texture2D texture;
+
+
+
+	
+	std::vector<unsigned char> textureData = {
+		255, 255, 255, 255,   0, 0, 255, 0 ,
+
+		0, 255, 0, 0,   0, 0, 0, 255,
+	};
+	
+
+	texture = 
+		reglCpp::Texture2D()
+		.data(textureData.data())
+		.width(2)
+		.height(2)
+		.pixelFormat("rgba8")
+		.min("linear mipmap linear")
+		.mag("nearest")
+		.wrap("repeat")
+		.name("cube index buffer")
+		.finish();
+	
 	startRenderLoop([&]() {
 
 		using namespace reglCpp;
@@ -129,7 +152,6 @@ void demo() {
 
 		mat4 viewMatrix = camera.GetViewMatrix();
 
-		
 		mat4 viewProjectionMatrix = viewMatrix * projectionMatrix;
 
 		std::array<std::array<float, 4>, 4> view{
@@ -179,11 +201,12 @@ in vec2 fsUv;
 
 out vec4 fragData0;
 
-uniform vec3 uModifier;
+uniform sampler2D uTex;
 
 void main()
 {
-    fragData0 = vec4(fsUv, 0.0, 1.0);
+	vec3 c = texture(uTex, fsUv.xy).rgb;
+    fragData0 = vec4(c.xyz, 1.0);
 }
 
 				)V0G0N")
@@ -205,11 +228,13 @@ void main()
 						.attributes({
 							{ "aPosition", &cubePosBuffer },
 							{ "aUv", &cubeUvBuffer },
+
 							{ "aNormal", &cubeNormalBuffer } })
 						.indices(&cubeIndexBuffer)
-						.count(indexData.size())
+						.count((int)indexData.size())
 						.uniforms({
 							{ "uModelMatrix", toArr(modelMatrix) },
+							{ "uTex", &texture },
 							});
 
 					reglCpp::context.submit(triCmd);

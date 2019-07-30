@@ -176,6 +176,105 @@ void IndexBuffer::dispose() {
 	mBufferObject.first = false;
 }
 
+Texture2D& Texture2D::finish() {
+
+	if (mWidth < 0) {
+		printf("'%d' is not a valid texture width\n", mWidth);
+		exit(1);
+	}
+
+	if (mHeight < 0) {
+		printf("'%d' is not a valid texture height\n", mHeight);
+		exit(1);
+	}
+
+	
+	auto strToWrap = [](const std::string& str) {
+		if (str == "clamp") {
+			return GL_CLAMP_TO_EDGE;
+		} else if (str == "repeat") {
+			return GL_REPEAT;
+		} else if (str == "mirror") {
+			return GL_MIRRORED_REPEAT;
+		} else {
+			return -1;
+		}
+	};
+
+	int wrapS = strToWrap(mWrapS);
+	if (wrapS == -1) {
+		printf("'%s' is not a valid texture wrap mode\n", mWrapS.c_str());
+		exit(1);
+	}
+
+	int wrapT = strToWrap(mWrapT);
+	if (wrapS == -1) {
+		printf("'%s' is not a valid texture wrap mode\n", mWrapT.c_str());
+		exit(1);
+	}
+
+	int mag = -1;
+	if (mMag == "nearest") {
+		mag = GL_NEAREST;
+	} else if (mMag == "linear") {
+		mag = GL_LINEAR;
+	} else {
+		printf("'%s' is not a valid texture mag filter\n", mMag.c_str());
+		exit(1);
+	}
+
+	int min = -1;
+	bool genMipmap = false;
+	if (mMin == "nearest") {
+		min = GL_NEAREST;
+	} else if (mMin == "linear") {
+		min = GL_LINEAR;
+	} else if (mMin == "linear mipmap linear") {
+		min = GL_LINEAR_MIPMAP_LINEAR;
+		genMipmap = true;
+	} else if (mMin == "nearest mipmap linear") {
+		min = GL_NEAREST_MIPMAP_LINEAR;
+		genMipmap = true;
+	} else if (mMin == "linear mipmap nearest") {
+		min = GL_LINEAR_MIPMAP_NEAREST;
+		genMipmap = true;
+	} else {
+		printf("'%s' is not a valid texture mag filter\n", mMag.c_str());
+		exit(1);
+	}
+
+	GL_C(glGenTextures(1, &mTexture.first));
+	GL_C(glBindTexture(GL_TEXTURE_2D, mTexture.first));
+	
+	if (mPixelFormat == "rgba8") {
+		if (mCharData == nullptr) {
+			printf("Need to specify 'unsigned char' array for pixel format %s\n", mPixelFormat.c_str());
+			exit(1);
+		}
+
+		GL_C(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, mWidth, mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, mCharData));
+	}
+	else {
+		printf("Unsupported pixel format %s\n", mPixelFormat.c_str());
+		exit(1);
+	}
+	
+	GL_C(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min));
+	GL_C(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag));
+	GL_C(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS));
+	GL_C(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT));
+
+	if (genMipmap) {
+		GL_C(glGenerateMipmap(GL_TEXTURE_2D));
+	}
+
+	GL_C(glBindTexture(GL_TEXTURE_2D, 0));
+
+	mTexture.second = true;
+
+	return *this;
+}
+
 
 inline char* GetShaderLogInfo(GLuint shader) {
 	GLint len;
@@ -375,6 +474,7 @@ void reglCppContext::submitWithContextState(contextState state) {
 
 		GL_C(glUseProgram(programInfo.mProgram));
 
+		int iActiveTexture = 0;
 		for (const auto& pair : state.mUniforms) {
 			std::string uniformName = pair.first;
 			UniformValue uniformValue = pair.second;
@@ -413,6 +513,15 @@ void reglCppContext::submitWithContextState(contextState state) {
 			}
 			else if (uniformValue.mType == UniformValue::FLOAT_MAT4X4) {
 				GL_C(glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, (GLfloat*)& uniformValue.mFloatMat4x4[0]));
+			} else if (uniformValue.mType == UniformValue::TEXTURE2D) {
+
+				GL_C(glUniform1i(uniformLocation, iActiveTexture));
+
+				GL_C(glActiveTexture(GL_TEXTURE0 + iActiveTexture));
+				GL_C(glBindTexture(GL_TEXTURE_2D, uniformValue.mTexture2D->mTexture.first));
+
+				++iActiveTexture;
+				//GL_C(glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, (GLfloat*)& uniformValue.mFloatMat4x4[0]));
 			}
 		}
 		

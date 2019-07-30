@@ -10,6 +10,8 @@
 
 namespace reglCpp
 {
+
+struct Texture2D;
 	
 struct UniformValue {
 	
@@ -21,6 +23,8 @@ struct UniformValue {
 
 		FLOAT_MAT4X4,
 
+		TEXTURE2D,
+
 		UNSET
 	};
 	
@@ -31,6 +35,8 @@ struct UniformValue {
 		std::array<float, 4> mFloatVec4;
 
 		std::array<std::array<float, 4>, 4 > mFloatMat4x4;
+
+		Texture2D* mTexture2D;
 	};
 	UniformType mType = UNSET;
 
@@ -63,6 +69,11 @@ struct UniformValue {
 	UniformValue(const std::array<std::array<float, 4>, 4 > & floatMat4x4) {
 		this->mFloatMat4x4 = floatMat4x4;
 		mType = FLOAT_MAT4X4;
+	}
+	
+	UniformValue(Texture2D* texture2D) {
+		this->mTexture2D = texture2D;
+		mType = TEXTURE2D;
 	}
 	
 	UniformValue() { 
@@ -107,19 +118,18 @@ struct VertexBuffer {
 		return *this;
 	}
 
-	VertexBuffer& usage(std::string usage) {
+	VertexBuffer& usage(const std::string& usage) {
 		mUsage = usage;
 		return *this;
 	}
 		
-	VertexBuffer& name(std::string name) {
+	VertexBuffer& name(const std::string& name) {
 		mName = name;
 		return *this;
 	}
 
 	VertexBuffer& finish();
 	void dispose();
-
 };
 
 struct IndexBuffer {
@@ -145,12 +155,12 @@ struct IndexBuffer {
 		return *this;
 	}
 
-	IndexBuffer& usage(std::string usage) {
+	IndexBuffer& usage(const std::string& usage) {
 		mUsage = usage;
 		return *this;
 	}
 
-	IndexBuffer& name(std::string name) {
+	IndexBuffer& name(const std::string& name) {
 		mName = name;
 		return *this;
 	}
@@ -159,6 +169,87 @@ struct IndexBuffer {
 	void dispose();
 };
 
+struct Texture2D {
+	// gl buffer object.
+	std::pair<unsigned int, bool> mTexture = { -1, false };
+
+	// should probably be a pointer to data instead.
+	float* mFloatData = nullptr;
+	unsigned char* mCharData = nullptr;
+
+	int mWidth = -1;
+	int mHeight = -1;
+	
+	std::string mMag = "nearest";
+	std::string mMin = "nearest";
+	
+	std::string mWrapS = "clamp";
+	std::string mWrapT = "clamp";
+
+	std::string mPixelFormat = "rgba8";
+
+	std::string mName = "unnnamed"; // can be useful setting for debugging.
+	
+	Texture2D& data(unsigned char* data) {
+		mCharData = data;
+		mFloatData = nullptr;
+		return *this;
+	}
+
+	Texture2D& data(float* data) {
+		mCharData = nullptr;
+		mFloatData = data;
+		return *this;
+	}
+	Texture2D& width(int width) {
+		mWidth = width;
+		return *this;
+	}
+
+	Texture2D& height(int height) {
+		mHeight = height;
+		return *this;
+	}
+
+	Texture2D& mag(const std::string& mag) {
+		mMag = mag;
+		return *this;
+	}
+
+	Texture2D& min(const std::string& min) {
+		mMin = min;
+		return *this;
+	}
+
+	Texture2D& wrapS(const std::string& wrapS) {
+		mWrapS = wrapS;
+		return *this;
+	}
+
+	Texture2D& wrapT(const std::string& wrapT) {
+		mWrapT = wrapT;
+		return *this;
+	}
+
+	Texture2D& wrap(const std::string& wrap) {
+		mWrapS = wrap;
+		mWrapT = wrap;
+		return *this;
+	}
+
+	Texture2D& pixelFormat(const std::string& pixelFormat) {
+		mPixelFormat = pixelFormat;
+		return *this;
+	}
+
+	Texture2D& name(const std::string& name) {
+		mName = name;
+		return *this;
+	}
+
+	Texture2D& finish();
+	void dispose();
+};
 
 struct Attribute {
 	std::string mKey;
