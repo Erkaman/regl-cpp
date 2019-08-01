@@ -20,12 +20,16 @@
 // these two are pretty useful, when debugging in RenderDoc or Nsight for instance.
 inline void dpush(const char* str) {
 #ifdef DEBUG_GROUPS
-//	glad_glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, str);
+#ifndef EMSCRIPTEN
+	glad_glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, str);
+#endif
 #endif
 }
 inline void dpop() {
 #ifdef DEBUG_GROUPS
-//	glad_glPopDebugGroup();
+#ifndef EMSCRIPTEN
+	glad_glPopDebugGroup();
+#endif
 #endif
 }
 
@@ -284,8 +288,6 @@ public:
 		det = 1.0f / det;
 
 		mat4 res;
-
-
 
 		res.m[0][0] = inv[0] * det;
 		res.m[1][0] = inv[1] * det;
