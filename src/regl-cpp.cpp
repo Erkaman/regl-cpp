@@ -1,6 +1,12 @@
 #include "regl-cpp.hpp"
 
+#ifdef EMSCRIPTEN
+#include<emscripten/emscripten.h>
+#define GLFW_INCLUDE_ES3
+#else
 #include <glad/glad.h>
+#endif
+
 #include <GLFW/glfw3.h>
 
 #define  LOGI(...)  printf(__VA_ARGS__)
@@ -66,10 +72,10 @@ void reglCppContext::transferStack(contextState& stackState, const Command& comm
 	}
 
 	if (
-		!std::isnan(command.mClearColor[0]) &&
-		!std::isnan(command.mClearColor[1]) &&
-		!std::isnan(command.mClearColor[2]) &&
-		!std::isnan(command.mClearColor[3])
+		!isnan(command.mClearColor[0]) &&
+		!isnan(command.mClearColor[1]) &&
+		!isnan(command.mClearColor[2]) &&
+		!isnan(command.mClearColor[3])
 		) {
 		stackState.mClearColor = command.mClearColor;
 	}
@@ -82,7 +88,7 @@ void reglCppContext::transferStack(contextState& stackState, const Command& comm
 		stackState.mViewport = command.mViewport;
 	}
 	
-	if (!std::isnan(command.mClearDepth)) {
+	if (!isnan(command.mClearDepth)) {
 		stackState.mClearDepth = command.mClearDepth;
 	}
 
@@ -422,17 +428,22 @@ void reglCppContext::submitWithContextState(contextState state) {
 	
 	GL_C(glViewport(state.mViewport[0], state.mViewport[1], state.mViewport[2], state.mViewport[3]));
 
-	bool doClear = !std::isnan(state.mClearColor[0]) &&
-		!std::isnan(state.mClearColor[1]) &&
-		!std::isnan(state.mClearColor[2]) &&
-		!std::isnan(state.mClearColor[3]);
+	bool doClear = !isnan(state.mClearColor[0]) &&
+		!isnan(state.mClearColor[1]) &&
+		!isnan(state.mClearColor[2]) &&
+		!isnan(state.mClearColor[3]);
 
-	doClear = doClear && !std::isnan(state.mClearDepth);
+	doClear = doClear && !isnan(state.mClearDepth);
 	
 	// translate stack state to GL commands. 
 	if (doClear) {
+
+#ifdef EMSCRIPTEN
+		GL_C(glClearDepthf(state.mClearDepth));
+#else
 		GL_C(glClearDepth(state.mClearDepth));
-		
+#endif
+
 		GL_C(glClearColor(
 			state.mClearColor[0],
 			state.mClearColor[1],

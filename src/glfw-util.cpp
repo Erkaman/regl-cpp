@@ -120,9 +120,12 @@ void initGlfw(const std::function<void()>& fn) {
 
 		glfwSetWindowPos(window, 0, 30);
 
+#ifdef EMSCRIPTEN
+#else
 		// load GLAD.
 		gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-
+#endif
+		
 		// Bind and create VAO, otherwise, we can't do anything in OpenGL.
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -136,33 +139,48 @@ void initGlfw(const std::function<void()>& fn) {
 	exit(EXIT_SUCCESS);
 }
 
+static std::function<void()> frameFn;
+
+static float frameStartTime;
+static float frameEndTime;
+
+void doFrame() {
+	glfwPollEvents();
+	HandleInput();
+
+	frameFn();
+
+	glfwSwapBuffers(window);
+
+	// FPS regulation code. we will ensure that a framerate of 30FPS is maintained.
+	// and for simplicity, we just assume that the computer is always able to maintain a framerate of at least 30FPS.
+	{
+		frameEndTime = (float)glfwGetTime();
+		float frameDuration = frameEndTime - frameStartTime;
+		const float sleepDuration = 1.0f / 30.0f - frameDuration;
+		if (sleepDuration > 0.0f) {
+
+			std::this_thread::sleep_for(std::chrono::milliseconds((int)(sleepDuration * 1000.0f)));
+		}
+		frameStartTime = (float)glfwGetTime();
+	}
+}
+
 void startRenderLoop(const std::function<void()>& fn) {
 
-	float frameStartTime = 0;
-	float frameEndTime = 0;
+	frameStartTime = 0;
+	frameEndTime = 0;
 	frameStartTime = (float)glfwGetTime();
+
+	frameFn = fn;
 	
-	while (!glfwWindowShouldClose(window)) {
-
-		glfwPollEvents();
-		HandleInput();
-		
-		fn();
-
-		glfwSwapBuffers(window);
-
-		// FPS regulation code. we will ensure that a framerate of 30FPS is maintained.
-		// and for simplicity, we just assume that the computer is always able to maintain a framerate of at least 30FPS.
-		{
-			frameEndTime = (float)glfwGetTime();
-			float frameDuration = frameEndTime - frameStartTime;
-			const float sleepDuration = 1.0f / 30.0f - frameDuration;
-			if (sleepDuration > 0.0f) {
-
-				std::this_thread::sleep_for(std::chrono::milliseconds((int)(sleepDuration * 1000.0f)));
-			}
-			frameStartTime = (float)glfwGetTime();
-		}
+#ifdef EMSCRIPTEN
+	emscripten_set_main_loop(doFrame, 0, 1);
+#else
+	while (!glfwWindowShouldClose(window))
+	{
+		doFrame();
 	}
-	
+#endif
+
 }

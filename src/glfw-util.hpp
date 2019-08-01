@@ -1,6 +1,13 @@
 #pragma once
 
+#ifdef EMSCRIPTEN
+#include<emscripten/emscripten.h>
+#define GLFW_INCLUDE_ES3
+
+#else
 #include <glad/glad.h>
+#endif
+
 #include <GLFW/glfw3.h>
 
 #include <math.h>
@@ -13,12 +20,12 @@
 // these two are pretty useful, when debugging in RenderDoc or Nsight for instance.
 inline void dpush(const char* str) {
 #ifdef DEBUG_GROUPS
-	glad_glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, str);
+//	glad_glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, str);
 #endif
 }
 inline void dpop() {
 #ifdef DEBUG_GROUPS
-	glad_glPopDebugGroup();
+//	glad_glPopDebugGroup();
 #endif
 }
 
@@ -454,8 +461,8 @@ public:
 	}
 };
 
-constexpr int WINDOW_WIDTH = 1920;
-constexpr int WINDOW_HEIGHT = 1080;
+constexpr int WINDOW_WIDTH = (1920*3)/4;
+constexpr int WINDOW_HEIGHT = (1080*3)/4;
 
 extern int fbWidth;
 extern int fbHeight;

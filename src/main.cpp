@@ -2,6 +2,7 @@
 
 #include "glfw-util.hpp"
 
+
 std::array<std::array<float, 4>, 4> toArr(const mat4 & matrix) {
 	mat4 m = matrix;
 	std::array<std::array<float, 4>, 4> ret{
@@ -119,16 +120,12 @@ void demo() {
 
 	reglCpp::Texture2D texture;
 
-
-
-	
 	std::vector<unsigned char> textureData = {
 		255, 255, 255, 255,   0, 0, 255, 0 ,
 
 		0, 255, 0, 0,   0, 0, 0, 255,
 	};
 	
-
 	texture = 
 		reglCpp::Texture2D()
 		.data(textureData.data())
