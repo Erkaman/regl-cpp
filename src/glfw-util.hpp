@@ -42,12 +42,6 @@ public:
 	vec2() { this->x = this->y = 0; }
 };
 
-//
-//
-// Begin vec3.
-//
-//
-
 inline float clamp(float v, float min, float max) { if (v < min) { return min; } else if (v > max) { return max; } else { return v; } }
 
 class vec3 {
@@ -75,7 +69,6 @@ public:
 
 	static vec3 mix(const vec3& x, const vec3& y, const float a) { return x * (1.0f - a) + y * a; }
 
-
 	// cross product.
 	static vec3 cross(const vec3& a, const vec3& b) { return vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x); }
 
@@ -90,10 +83,8 @@ public:
 	static vec3 clamp(const vec3& v, const float min, const float max) {
 		return vec3(
 			::clamp(v.x, min, max), ::clamp(v.y, min, max), ::clamp(v.z, min, max)
-			//0.0f, 0.0f, 0.0f
 		);
 	}
-
 };
 
 class vec4 {
@@ -110,26 +101,7 @@ public:
 	friend vec4 operator+(const vec4& a, const vec4& b) { return vec4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w); }
 	friend vec4 operator*(const float s, const vec4& a) { return vec4(s * a.x, s * a.y, s * a.z, s * a.w); }
 	friend vec4 operator*(const vec4& a, const float s) { return s * a; }
-	/*
-	static float length(const vec3& a) { return sqrt(vec3::dot(a, a)); }
-
-	// dot product.
-	static float dot(const vec3& a, const vec3& b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
-
-	static float distance(const vec3& a, const vec3& b) { return length(a - b); }
-	static vec3 normalize(const vec3& a) { return (1.0f / vec3::length(a)) * a; }
-	*/
-	//
-	// Rotate the vector 'v' around the 'axis' for 'theta' degrees.
-	// This is basically Rodrigues' rotation formula.
-	//
 };
-
-//
-//
-// Begin mat4
-//
-//
 
 class mat4 {
 public:

@@ -317,8 +317,7 @@ inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& f
 	std::string prefix = "";
 
 	prefix += "#version 100\n";
-	prefix += "#define GL3\n";
-
+	
 	prefix += std::string(R"(
 
 )");
@@ -536,7 +535,6 @@ void reglCppContext::submitWithContextState(contextState state) {
 			}
 		}
 		
-
 		for (const auto& pair : programInfo.mAttributes) {
 			std::string attributeName = pair.first;
 			unsigned int attributeLocation = pair.second;
