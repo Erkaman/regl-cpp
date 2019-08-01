@@ -1,3 +1,6 @@
+#pragma once
+
+#include <array>
 
 class vec2 {
 public:
@@ -361,4 +364,19 @@ public:
 
 		return vec4(res[0], res[1], res[2], res[3]);
 	}
+
+	static std::array<std::array<float, 4>, 4> toArr(const mat4 & matrix) {
+		mat4 m = matrix;
+		std::array<std::array<float, 4>, 4> ret{
+		{
+			{ m.m[0][0], m.m[0][1], m.m[0][2], m.m[0][3] },
+			{ m.m[1][0], m.m[1][1], m.m[1][2], m.m[1][3] },
+			{ m.m[2][0], m.m[2][1], m.m[2][2], m.m[2][3] },
+			{ m.m[3][0], m.m[3][1], m.m[3][2], m.m[3][3] },
+		}
+		};
+
+		return ret;
+	}
+
 };
