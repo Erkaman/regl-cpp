@@ -1,37 +1,13 @@
 #pragma once
 
-#ifdef EMSCRIPTEN
-#include<emscripten/emscripten.h>
-#define GLFW_INCLUDE_ES3
-
-#else
-#include <glad/glad.h>
-#endif
-
-#include <GLFW/glfw3.h>
-
 #include <math.h>
 #include <stdio.h>
-
 #include <functional>
 
-#define DEBUG_GROUPS
-
 // these two are pretty useful, when debugging in RenderDoc or Nsight for instance.
-inline void dpush(const char* str) {
-#ifdef DEBUG_GROUPS
-#ifndef EMSCRIPTEN
-	glad_glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, str);
-#endif
-#endif
-}
-inline void dpop() {
-#ifdef DEBUG_GROUPS
-#ifndef EMSCRIPTEN
-	glad_glPopDebugGroup();
-#endif
-#endif
-}
+#define DEBUG_GROUPS // remove this to make the two below into no-ops.
+void dpush(const char* str);
+void dpop();
 
 class vec2 {
 public:
@@ -397,11 +373,7 @@ public:
 	}
 };
 
-//
-//
-// begin Camera
-//
-//
+// camera that uses glfw for mouse and keyboard input.
 class Camera {
 public:
 

@@ -1,5 +1,15 @@
 #include "glfw-util.hpp"
 
+#ifdef EMSCRIPTEN
+#include<emscripten/emscripten.h>
+#define GLFW_INCLUDE_ES3
+
+#else
+#include <glad/glad.h>
+#endif
+
+#include <GLFW/glfw3.h>
+
 #include <chrono>
 #include <thread>
 
@@ -18,6 +28,22 @@ Camera camera(vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 0.0));
 void error_callback(int error, const char* description)
 {
 	puts(description);
+}
+
+// these two are pretty useful, when debugging in RenderDoc or Nsight for instance.
+void dpush(const char* str) {
+#ifdef DEBUG_GROUPS
+#ifndef EMSCRIPTEN
+	glad_glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, str);
+#endif
+#endif
+}
+void dpop() {
+#ifdef DEBUG_GROUPS
+#ifndef EMSCRIPTEN
+	glad_glPopDebugGroup();
+#endif
+#endif
 }
 
 inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
