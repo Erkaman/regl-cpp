@@ -14,11 +14,11 @@ set (CMAKE_CXX_STANDARD 11)
 
 
 include_directories(
-	deps/glfw-3.2/include/GLFW/
+	deps/glfw-3.2.1/include/
 	deps/glad/include
 	deps/tiny_obj_loader
+	src/
 )
-
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 set(OPENGL_LIBRARY
@@ -40,14 +40,10 @@ set(ALL_LIBS
 	glfw
 )
 
-add_executable(regl-cpp
-  src/main.cpp
-  src/regl-cpp.cpp
-  src/glfw-util.cpp
+add_library(regl-cpp-lib src/regl-cpp.cpp src/glfw-util.cpp deps/glad/src/glad.c)
 
-  deps/glad/src/glad.c
-	)
 
-target_link_libraries(regl-cpp
-	${ALL_LIBS}
-)
+add_executable(textured-cube
+  samples/textured-cube/main.cpp)
+
+target_link_libraries(textured-cube regl-cpp-lib ${ALL_LIBS} )
