@@ -258,7 +258,7 @@ Texture2D& Texture2D::finish() {
 			exit(1);
 		}
 
-		GL_C(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, mWidth, mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, mCharData));
+		GL_C(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mWidth, mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, mCharData));
 	}
 	else {
 		printf("Unsupported pixel format %s\n", mPixelFormat.c_str());
@@ -316,7 +316,7 @@ inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& f
 
 	std::string prefix = "";
 
-	prefix += "#version 150\n";
+	prefix += "#version 100\n";
 	prefix += "#define GL3\n";
 
 	prefix += std::string(R"(

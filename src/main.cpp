@@ -170,13 +170,15 @@ void demo() {
 			.viewport(0, 0, fbWidth, fbHeight)
 			.depthTest(true)
 			.vert(R"V0G0N(  
-in vec3 aPosition;
-in vec3 aNormal;
-in vec2 aUv;
+precision highp float;
 
-out vec3 fsNormal;
-out vec3 fsPos;
-out vec2 fsUv;
+attribute vec3 aPosition;
+attribute vec3 aNormal;
+attribute vec2 aUv;
+
+varying vec3 fsNormal;
+varying vec3 fsPos;
+varying vec2 fsUv;
 
 uniform mat4 uViewProjectionMatrix;
 uniform mat4 uModelMatrix;
@@ -190,20 +192,20 @@ void main()
 }
 
 				)V0G0N")
-			.frag(R"V0G0N(  
+			.frag(R"V0G0N( 
 
-in vec3 fsNormal;
-in vec3 fsPos;
-in vec2 fsUv;
-
-out vec4 fragData0;
+precision highp float;
+ 
+varying vec3 fsNormal;
+varying vec3 fsPos;
+varying vec2 fsUv;
 
 uniform sampler2D uTex;
 
 void main()
 {
-	vec3 c = texture(uTex, fsUv.xy).rgb;
-    fragData0 = vec4(c.xyz, 1.0);
+	vec3 c = texture2D(uTex, fsUv.xy).rgb;
+    gl_FragColor = vec4(c.xyz, 1.0);
 }
 
 				)V0G0N")
