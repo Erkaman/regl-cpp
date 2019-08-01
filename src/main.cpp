@@ -2,7 +2,6 @@
 
 #include "glfw-util.hpp"
 
-
 std::array<std::array<float, 4>, 4> toArr(const mat4 & matrix) {
 	mat4 m = matrix;
 	std::array<std::array<float, 4>, 4> ret{
@@ -144,8 +143,8 @@ void demo() {
 
 		float zNear = 0.1f;
 		float zFar = 8000.0f;
-		float ratio = (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT;
-		mat4 projectionMatrix = mat4::perspective(0.872665f * 0.5f, (float)(WINDOW_WIDTH) / (float)WINDOW_HEIGHT, zNear, zFar);
+		float ratio = (float)(getFramebufferWidth()) / (float)getFramebufferHeight();
+		mat4 projectionMatrix = mat4::perspective(0.872665f * 0.5f, (float)(getFramebufferWidth()) / (float)getFramebufferHeight(), zNear, zFar);
 
 		mat4 viewMatrix = camera.GetViewMatrix();
 
@@ -164,10 +163,10 @@ void demo() {
 		Command clearCmd = Command()
 			.clearColor({ 0.2f, 0.2f, 0.2f, 1.0f })
 			.clearDepth(1.0f)
-			.viewport(0, 0, fbWidth, fbHeight);
+			.viewport(0, 0, getFramebufferWidth(), getFramebufferHeight());
 		
 		Command baseCmd = Command()
-			.viewport(0, 0, fbWidth, fbHeight)
+			.viewport(0, 0, getFramebufferWidth(), getFramebufferHeight())
 			.depthTest(true)
 			.vert(R"V0G0N(  
 precision highp float;
@@ -252,5 +251,6 @@ void main()
 }
 
 int main(int argc, char** argv) {
+	setWindowSize((1920 * 3) / 4, (1080 * 3) / 4);
 	initGlfw(demo);
 }

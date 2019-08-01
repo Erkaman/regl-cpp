@@ -67,6 +67,26 @@ inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
     } while (0)
 #endif
 
+static int windowWidth = (1920*3)/4;
+static int windowHeight = (1080*3)/4;
+
+static int framebufferWidth;
+static int framebufferHeight;
+
+void setWindowSize(int width, int height) {
+	windowWidth = width;
+	windowHeight = height;
+}
+
+int getFramebufferWidth() {
+	return framebufferWidth;
+}
+
+int getFramebufferHeight() {
+	return framebufferHeight;
+}
+
+
 void Camera::Update(const float delta) {
 
 	// we use mouse movement to change the camera viewing angle.
@@ -136,7 +156,7 @@ void initGlfw(const std::function<void()>& fn) {
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-		window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Deferred Shading Demo", NULL, NULL);
+		window = glfwCreateWindow(windowWidth, windowHeight, "Deferred Shading Demo", NULL, NULL);
 		if (!window) {
 			glfwTerminate();
 			exit(EXIT_FAILURE);
@@ -156,7 +176,7 @@ void initGlfw(const std::function<void()>& fn) {
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 
-		glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+		glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
 	}
 
 	fn();

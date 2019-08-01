@@ -45,11 +45,10 @@ public:
 	}
 };
 
-constexpr int WINDOW_WIDTH = (1920*3)/4;
-constexpr int WINDOW_HEIGHT = (1080*3)/4;
+void setWindowSize(int width, int height);
 
-extern int fbWidth;
-extern int fbHeight;
+int getFramebufferWidth();
+int getFramebufferHeight();
 
 extern Camera camera;
 

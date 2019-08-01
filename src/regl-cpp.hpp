@@ -9,7 +9,6 @@
 
 #include <math.h>
 
-
 namespace reglCpp
 {
 
