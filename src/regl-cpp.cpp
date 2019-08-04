@@ -71,6 +71,10 @@ void reglCppContext::transferStack(contextState& stackState, const Command& comm
 		stackState.mFrag = command.mFrag;
 	}
 
+	if (command.mPrimitive != "") {
+		stackState.mPrimitive = command.mPrimitive;
+	}
+	
 	if (
 		!isnan(command.mClearColor[0]) &&
 		!isnan(command.mClearColor[1]) &&
@@ -491,14 +495,6 @@ void reglCppContext::submitWithContextState(contextState state) {
 
 			if (programInfo.mUniforms.count(uniformName) == 0) {
 				continue;
-				/*
-				printf("the program doesnt have uniform with name %s. vert %s\n frag %s",
-					uniformName.c_str(),
-
-					programInfo.mVert.c_str(),
-					programInfo.mFrag.c_str()
-				);
-				*/
 			}
 			unsigned int uniformLocation = programInfo.mUniforms[uniformName];
 
@@ -526,12 +522,10 @@ void reglCppContext::submitWithContextState(contextState state) {
 			} else if (uniformValue.mType == UniformValue::TEXTURE2D) {
 
 				GL_C(glUniform1i(uniformLocation, iActiveTexture));
-
 				GL_C(glActiveTexture(GL_TEXTURE0 + iActiveTexture));
 				GL_C(glBindTexture(GL_TEXTURE_2D, uniformValue.mTexture2D->mTexture.first));
 
 				++iActiveTexture;
-				//GL_C(glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, (GLfloat*)& uniformValue.mFloatMat4x4[0]));
 			}
 		}
 		
@@ -562,6 +556,16 @@ void reglCppContext::submitWithContextState(contextState state) {
 			
 		}
 
+		GLenum primitive;
+		if (state.mPrimitive == "triangles") {
+			primitive = GL_TRIANGLES;
+		} else if (state.mPrimitive == "points") {
+			primitive = GL_POINTS;
+		} else {
+			printf("'%s' is an unsupported primitive type\n", state.mPrimitive.c_str());
+			exit(1);
+
+		}
 
 		if (state.mIndices != nullptr) {
 			if (!state.mIndices->mBufferObject.second) {
@@ -570,12 +574,12 @@ void reglCppContext::submitWithContextState(contextState state) {
 			}
 			
 			GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state.mIndices->mBufferObject.first));
-			GL_C(glDrawElements(GL_TRIANGLES, state.mCount, GL_UNSIGNED_INT, 0));
+			GL_C(glDrawElements(primitive, state.mCount, GL_UNSIGNED_INT, 0));
 
 		}
 		else {
 			// TODO: handle other things than triangles as well.
-			GL_C(glDrawArrays(GL_TRIANGLES, 0, state.mCount));
+			GL_C(glDrawArrays(primitive, 0, state.mCount));
 		}
 	
 		//now bind index buffer. and then draw.

@@ -274,6 +274,8 @@ struct Command {
 	std::pair<bool, bool> mDepthTest = { false, false };
 	std::string mVert = "";
 	std::string mFrag = "";
+
+	std::string mPrimitive = "triangles";
 	
 	Command& viewport(int x, int y, int w, int h) {
 		mViewport[0] = x;
@@ -328,25 +330,28 @@ struct Command {
 		this->mFrag = frag;
 		return *this;
 	}
+	
+	Command& primitive(const std::string& primitive) {
+		this->mPrimitive = primitive;
+		return *this;
+	}
 };
 
 struct reglCppContext {
 private:
 
 	struct contextState{
-		// pass
 		std::array<float, 4> mClearColor;
 		float mClearDepth;
 
-		// pipeline.
 		std::string mVert;
 		std::string mFrag;
+		std::string mPrimitive;
 		bool mDepthTest;
 		
-		// command
 		std::map<std::string, UniformValue> mUniforms;		
 		std::map<std::string, VertexBuffer*> mAttributes;
-		IndexBuffer* mIndices;
+		IndexBuffer* mIndices = nullptr;
 		int mCount;
 		std::array<int, 4> mViewport;
 		
@@ -358,6 +363,8 @@ private:
 
 			mVert = "";
 			mFrag = "";
+			mPrimitive = "";
+
 
 			mDepthTest = true;
 

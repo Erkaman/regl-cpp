@@ -35,15 +35,21 @@ set(OPENGL_LIBRARY
 )
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
-set(ALL_LIBS
-	${OPENGL_LIBRARY}
-	glfw
-)
 
 add_library(regl-cpp-lib src/regl-cpp.cpp src/glfw-util.cpp deps/glad/src/glad.c)
 
 
-add_executable(textured-cube
-  samples/textured-cube/main.cpp)
+set(ALL_LIBS
+	${OPENGL_LIBRARY}
+	glfw
+	regl-cpp-lib
+)
 
-target_link_libraries(textured-cube regl-cpp-lib ${ALL_LIBS} )
+add_executable(textured-cube samples/textured-cube/main.cpp)
+target_link_libraries(textured-cube  ${ALL_LIBS} )
+
+add_executable(animated samples/animated/main.cpp)
+target_link_libraries(animated ${ALL_LIBS} )
+
+
+
