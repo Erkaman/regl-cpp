@@ -14,6 +14,8 @@
 constexpr int BUFFER_VIEW_TARGET_ARRAY_BUFFER = 34962;
 constexpr int BUFFER_VIEW_TARGET_ELEMENT_ARRAY_BUFFER = 34963;
 
+
+constexpr int COMPONENT_TYPE_UNSIGNED_BYTE = 5121;
 constexpr int COMPONENT_TYPE_FLOAT = 5126;
 constexpr int COMPONENT_TYPE_UNSIGNED_SHORT = 5123;
 
@@ -80,7 +82,10 @@ void loadMesh(
 
 	int* numPoints,
 
-	int* indexCount) {
+	int* indexCount,
+	
+	reglCpp::Texture2D* meshTexture
+	) {
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
 	std::string err;
@@ -394,6 +399,91 @@ void loadMesh(
 
 	}
 
+	{
+		auto wrapIntToStr = [](int wrap) {
+			if (wrap == 33071) {
+				return "clamp";
+			} else if (wrap == 33648) {
+				return "mirror";
+			} else if (wrap == 10497) {
+				return "repeat";
+			} else {
+				printf("unsupported texture wrap type %d\n", wrap);
+				exit(1);
+			}
+		};
+
+		if (model.samplers.size() != 1) {
+			printf("We only handle file with a single sample\n");
+			exit(1);
+		}
+		if (model.images.size() != 1) {
+			printf("We only handle file with a single image\n");
+			exit(1);
+		}
+
+		const tinygltf::Sampler& gltfSampler = model.samplers[0];
+		const tinygltf::Image& gltfImage = model.images[0];
+
+
+		assert(gltfImage.component == 4);
+		assert(gltfImage.bits == 8);
+		assert(gltfImage.pixel_type == COMPONENT_TYPE_UNSIGNED_BYTE);
+
+		
+
+		int width = gltfImage.width;
+		int height = gltfImage.height;
+
+		std::string wrapS = wrapIntToStr(gltfSampler.wrapS);
+		std::string wrapT = wrapIntToStr(gltfSampler.wrapT);
+
+		std::string mag;
+		{
+
+			if (gltfSampler.magFilter == 9728) {
+				mag = "nearest";
+			}
+			else if (gltfSampler.magFilter == 9729) {
+				mag = "linear";
+			}
+			else {
+				printf("unsupported texture mag filter type %d\n", gltfSampler.magFilter);
+				exit(1);
+			}
+		}
+
+		std::string min;
+		{
+
+			if (gltfSampler.minFilter == 9986) {
+				min = "nearest mipmap linear";
+			}
+			else {
+				printf("unsupported texture min filter type %d\n", gltfSampler.minFilter);
+
+				exit(1);
+			}
+		}
+		
+		std::vector<unsigned char> imageData = gltfImage.image;
+
+		reglCpp::Texture2D texture;
+		
+		*meshTexture =
+			reglCpp::Texture2D()
+			.width(width)
+			.height(height)
+			.data(imageData.data())
+			.pixelFormat("rgba8")
+			.wrapS(wrapS)
+			.wrapT(wrapT)
+			.min(min) // "linear mipmap linear"
+			.mag(mag)		
+			.name("mesh texture")
+			.finish();
+	}
+
 }
 
 void demo() {
@@ -402,6 +492,8 @@ void demo() {
 	reglCpp::VertexBuffer meshTexcoordBuffer;
 
 	reglCpp::IndexBuffer meshIndexBuffer;
+
+	reglCpp::Texture2D meshTexture;
 
 	int indexCount;
 	int numPoints;
@@ -412,8 +504,9 @@ void demo() {
 		&meshTexcoordBuffer, 
 		&meshIndexBuffer,
 		&numPoints, 
-		&indexCount);
-
+		&indexCount,
+		&meshTexture);
+	
 	reglCpp::VertexBuffer cubePosBuffer;
 	reglCpp::VertexBuffer cubeNormalBuffer;
 	reglCpp::VertexBuffer cubeUvBuffer;
@@ -592,11 +685,12 @@ precision highp float;
 varying vec2 fsUv;
 varying vec3 fsNormal;
 
+uniform sampler2D uTex;
+
 void main()
 {
- //   gl_FragColor = vec4(fsNormal, 1.0);
-    gl_FragColor = vec4(fsUv, 0.0, 1.0);
-
+	vec3 c = texture2D(uTex, fsUv.xy).rgb;
+    gl_FragColor = vec4(c.xyz, 1.0);
 }
 				)V0G0N")
 						.attributes({
@@ -612,6 +706,7 @@ void main()
 						.primitive("triangles")
 						.uniforms({
 							{ "uModelMatrix", mat4::toArr(modelMatrix) },
+							{ "uTex", &meshTexture }
 							});
 
 					reglCpp::context.submit(pointsCmd);
