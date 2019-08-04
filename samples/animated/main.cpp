@@ -15,6 +15,7 @@ constexpr int BUFFER_VIEW_TARGET_ARRAY_BUFFER = 34962;
 constexpr int BUFFER_VIEW_TARGET_ELEMENT_ARRAY_BUFFER = 34963;
 
 constexpr int COMPONENT_TYPE_FLOAT = 5126;
+constexpr int COMPONENT_TYPE_UNSIGNED_SHORT = 5123;
 
 constexpr int TYPE_VEC3 = 3;
 
@@ -67,7 +68,16 @@ void cubeData(
 
 }
 
-void loadMesh(reglCpp::VertexBuffer& meshPosBuffer, int* numPoints) {
+void loadMesh(
+	
+	reglCpp::VertexBuffer* meshPosBuffer,
+	reglCpp::VertexBuffer* meshNormalBuffer,
+
+	reglCpp::IndexBuffer* meshIndexBuffer,
+
+	int* numPoints,
+
+	int* indexCount) {
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
 	std::string err;
@@ -110,34 +120,6 @@ void loadMesh(reglCpp::VertexBuffer& meshPosBuffer, int* numPoints) {
 		exit(1);
 	}
 
-	tinygltf::Accessor gltfPositionAccesor = model.accessors[gltfPrimtive.attributes["POSITION"]];
-	assert(gltfPositionAccesor.normalized == false);
-	assert(gltfPositionAccesor.componentType == COMPONENT_TYPE_FLOAT);
-	assert(gltfPositionAccesor.type == TYPE_VEC3);
-
-	tinygltf::BufferView gltfPositionBufferView = model.bufferViews[gltfPositionAccesor.bufferView];
-	assert(gltfPositionBufferView.target == BUFFER_VIEW_TARGET_ARRAY_BUFFER);
-	assert(gltfPositionBufferView.byteStride == 12);
-
-	const tinygltf::Buffer& gltfBuffer = model.buffers[gltfPositionBufferView.buffer];
-
-	//int positionAttribute = gltfPrimtive.attributes["POSITION"];
-
-	int bufferBeg = gltfPositionBufferView.byteOffset;
-	int bufferEnd = bufferBeg + gltfPositionBufferView.byteLength;
-
-	int iBuf = bufferBeg;
-
-	iBuf += gltfPositionAccesor.byteOffset;
-
-	const float xmin = gltfPositionAccesor.minValues[0];
-	const float ymin = gltfPositionAccesor.minValues[1];
-	const float zmin = gltfPositionAccesor.minValues[2];
-
-	const float xmax = gltfPositionAccesor.maxValues[0];
-	const float ymax = gltfPositionAccesor.maxValues[1];
-	const float zmax = gltfPositionAccesor.maxValues[2];
-
 	auto bytesToFloat = [](
 		unsigned char b0,
 		unsigned char b1,
@@ -148,55 +130,219 @@ void loadMesh(reglCpp::VertexBuffer& meshPosBuffer, int* numPoints) {
 			memcpy(&x, xBuf, sizeof(float) * 4);
 			return x;
 	};
+	
+	auto bytesToUnsignedShort = [](
+		unsigned char b0,
+		unsigned char b1) {
+			unsigned char xBuf[] = { b0, b1 };
+			unsigned short x;
+			memcpy(&x, xBuf, sizeof(float) * 2);
+			return x;
+	};
 
-	std::vector<float> posData;
 
-	for (int iElem = 0; iElem < gltfPositionAccesor.count; ++iElem) {
-		float x = bytesToFloat(
-			gltfBuffer.data[iBuf + 0],
-			gltfBuffer.data[iBuf + 1],
-			gltfBuffer.data[iBuf + 2],
-			gltfBuffer.data[iBuf + 3]);
-		iBuf += 4;
+	{
 
-		float y = bytesToFloat(
-			gltfBuffer.data[iBuf + 0],
-			gltfBuffer.data[iBuf + 1],
-			gltfBuffer.data[iBuf + 2],
-			gltfBuffer.data[iBuf + 3]);
-		iBuf += 4;
+		tinygltf::Accessor gltfPositionAccesor = model.accessors[gltfPrimtive.attributes["POSITION"]];
+		assert(gltfPositionAccesor.normalized == false);
+		assert(gltfPositionAccesor.componentType == COMPONENT_TYPE_FLOAT);
+		assert(gltfPositionAccesor.type == TYPE_VEC3);
 
-		float z = bytesToFloat(
-			gltfBuffer.data[iBuf + 0],
-			gltfBuffer.data[iBuf + 1],
-			gltfBuffer.data[iBuf + 2],
-			gltfBuffer.data[iBuf + 3]);
-		iBuf += 4;
+		tinygltf::BufferView gltfPositionBufferView = model.bufferViews[gltfPositionAccesor.bufferView];
+		assert(gltfPositionBufferView.target == BUFFER_VIEW_TARGET_ARRAY_BUFFER);
+		assert(gltfPositionBufferView.byteStride == 12);
 
-		assert(x >= xmin && x <= xmax);
-		assert(y >= ymin && y <= ymax);
-		assert(z >= zmin && z <= zmax);
+		const tinygltf::Buffer& gltfBuffer = model.buffers[gltfPositionBufferView.buffer];
 
-		posData.push_back(x);
-		posData.push_back(y);
-		posData.push_back(z);
+		int bufferBeg = gltfPositionBufferView.byteOffset;
+		int bufferEnd = bufferBeg + gltfPositionBufferView.byteLength;
+
+		int iBuf = bufferBeg;
+
+		iBuf += gltfPositionAccesor.byteOffset;
+
+		const float xmin = gltfPositionAccesor.minValues[0];
+		const float ymin = gltfPositionAccesor.minValues[1];
+		const float zmin = gltfPositionAccesor.minValues[2];
+
+		const float xmax = gltfPositionAccesor.maxValues[0];
+		const float ymax = gltfPositionAccesor.maxValues[1];
+		const float zmax = gltfPositionAccesor.maxValues[2];
+
+		std::vector<float> posData;
+
+		for (int iElem = 0; iElem < gltfPositionAccesor.count; ++iElem) {
+			float x = bytesToFloat(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1],
+				gltfBuffer.data[iBuf + 2],
+				gltfBuffer.data[iBuf + 3]);
+			iBuf += 4;
+
+			float y = bytesToFloat(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1],
+				gltfBuffer.data[iBuf + 2],
+				gltfBuffer.data[iBuf + 3]);
+			iBuf += 4;
+
+			float z = bytesToFloat(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1],
+				gltfBuffer.data[iBuf + 2],
+				gltfBuffer.data[iBuf + 3]);
+			iBuf += 4;
+
+			assert(x >= xmin && x <= xmax);
+			assert(y >= ymin && y <= ymax);
+			assert(z >= zmin && z <= zmax);
+
+			posData.push_back(x);
+			posData.push_back(y);
+			posData.push_back(z);
+		}
+
+		*meshPosBuffer =
+			reglCpp::VertexBuffer()
+			.data(posData.data())
+			.length((unsigned int)posData.size() / 3)
+			.numComponents(3)
+			.name("mesh position buffer")
+			.finish();
+
+		*numPoints = posData.size() / 3;
+	}
+
+	{
+
+		tinygltf::Accessor gltfNormalAccesor = model.accessors[gltfPrimtive.attributes["NORMAL"]];
+		assert(gltfNormalAccesor.normalized == false);
+		assert(gltfNormalAccesor.componentType == COMPONENT_TYPE_FLOAT);
+		assert(gltfNormalAccesor.type == TYPE_VEC3);
+
+		tinygltf::BufferView gltfNormalBufferView = model.bufferViews[gltfNormalAccesor.bufferView];
+		assert(gltfNormalBufferView.target == BUFFER_VIEW_TARGET_ARRAY_BUFFER);
+		assert(gltfNormalBufferView.byteStride == 12);
+
+		const tinygltf::Buffer& gltfBuffer = model.buffers[gltfNormalBufferView.buffer];
+
+		int bufferBeg = gltfNormalBufferView.byteOffset;
+		int bufferEnd = bufferBeg + gltfNormalBufferView.byteLength;
+
+		int iBuf = bufferBeg;
+
+		iBuf += gltfNormalAccesor.byteOffset;
+
+		const float xmin = gltfNormalAccesor.minValues[0];
+		const float ymin = gltfNormalAccesor.minValues[1];
+		const float zmin = gltfNormalAccesor.minValues[2];
+							   
+		const float xmax = gltfNormalAccesor.maxValues[0];
+		const float ymax = gltfNormalAccesor.maxValues[1];
+		const float zmax = gltfNormalAccesor.maxValues[2];
+
+		std::vector<float> normalData;
+
+		for (int iElem = 0; iElem < gltfNormalAccesor.count; ++iElem) {
+			float x = bytesToFloat(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1],
+				gltfBuffer.data[iBuf + 2],
+				gltfBuffer.data[iBuf + 3]);
+			iBuf += 4;
+
+			float y = bytesToFloat(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1],
+				gltfBuffer.data[iBuf + 2],
+				gltfBuffer.data[iBuf + 3]);
+			iBuf += 4;
+
+			float z = bytesToFloat(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1],
+				gltfBuffer.data[iBuf + 2],
+				gltfBuffer.data[iBuf + 3]);
+			iBuf += 4;
+
+			assert(x >= xmin && x <= xmax);
+			assert(y >= ymin && y <= ymax);
+			assert(z >= zmin && z <= zmax);
+
+			normalData.push_back(x);
+			normalData.push_back(y);
+			normalData.push_back(z);
+		}
+
+		*meshNormalBuffer =
+			reglCpp::VertexBuffer()
+			.data(normalData.data())
+			.length((unsigned int)normalData.size() / 3)
+			.numComponents(3)
+			.name("mesh normal buffer")
+			.finish();
 	}
 	
-	meshPosBuffer =
-		reglCpp::VertexBuffer()
-		.data(posData.data())
-		.length((unsigned int)posData.size() / 3)
-		.numComponents(3)
-		.name("mesh position buffer")
-		.finish();
+	{
+		tinygltf::Accessor gltfIndexAccesor = model.accessors[gltfPrimtive.indices];
+		tinygltf::BufferView gltfIndexBufferView = model.bufferViews[gltfIndexAccesor.bufferView];
+	
+		assert(gltfIndexAccesor.normalized == false);
+		assert(gltfIndexAccesor.componentType == COMPONENT_TYPE_UNSIGNED_SHORT);
+		
+		assert(gltfIndexBufferView.target == BUFFER_VIEW_TARGET_ELEMENT_ARRAY_BUFFER);
+		assert(gltfIndexBufferView.byteStride == 0);
+		
+		const tinygltf::Buffer& gltfBuffer = model.buffers[gltfIndexBufferView.buffer];
+		
+		int bufferBeg = gltfIndexBufferView.byteOffset;
+		int bufferEnd = bufferBeg + gltfIndexBufferView.byteLength;
 
-	*numPoints = posData.size() / 3;
+		int iBuf = bufferBeg;
+
+		iBuf += gltfIndexAccesor.byteOffset;
+		
+		const unsigned short imin = gltfIndexAccesor.minValues[0];
+		
+		const unsigned short imax = gltfIndexAccesor.maxValues[0];
+		
+
+		std::vector<unsigned int> indexData;
+		
+		for (int iElem = 0; iElem < gltfIndexAccesor.count; ++iElem) {
+			unsigned short index = bytesToUnsignedShort(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1]);
+			iBuf += 2;
+
+			assert(index >= imin && index <= imax);
+			
+			indexData.push_back(index);
+		}
+
+		*meshIndexBuffer =
+			reglCpp::IndexBuffer()
+			.data(indexData.data())
+			.length((unsigned int)indexData.size() / 1)
+			.name("mesh index buffer")
+			.finish();
+
+		*indexCount = indexData.size();
+
+	}
+
 }
 
 void demo() {
 	reglCpp::VertexBuffer meshPosBuffer;
+	reglCpp::VertexBuffer meshNormalBuffer;
+
+	reglCpp::IndexBuffer meshIndexBuffer;
+
+	int indexCount;
 	int numPoints;
-	loadMesh(meshPosBuffer, &numPoints);
+
+	loadMesh(&meshPosBuffer, &meshNormalBuffer, &meshIndexBuffer, &numPoints, &indexCount);
 
 	reglCpp::VertexBuffer cubePosBuffer;
 	reglCpp::VertexBuffer cubeNormalBuffer;
@@ -306,6 +452,7 @@ attribute vec3 aNormal;
 attribute vec2 aUv;
 
 varying vec2 fsUv;
+varying vec3 fsNormal;
 
 uniform mat4 uViewProjectionMatrix;
 uniform mat4 uModelMatrix;
@@ -313,6 +460,7 @@ uniform mat4 uModelMatrix;
 void main()
 {
 	fsUv = aUv;
+	fsNormal = aNormal;
     gl_Position = uViewProjectionMatrix * uModelMatrix * vec4(aPosition, 1.0);
 }
 
@@ -337,6 +485,8 @@ void main()
 precision highp float;
  
 varying vec2 fsUv;
+varying vec3 fsNormal;
+
 uniform sampler2D uTex;
 
 void main()
@@ -370,17 +520,23 @@ void main()
 precision highp float;
  
 varying vec2 fsUv;
+varying vec3 fsNormal;
 
 void main()
 {
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = vec4(fsNormal, 1.0);
 }
 				)V0G0N")
 						.attributes({
-							{ "aPosition", &meshPosBuffer } } )
+							{ "aPosition", &meshPosBuffer },
+							{ "aNormal",& meshNormalBuffer }
+							} )
 
-						.count((int)numPoints)
-						.primitive("points")
+						.indices(&meshIndexBuffer)
+						.count(indexCount)
+						//.count((int)numPoints)
+
+						.primitive("triangles")
 						.uniforms({
 							{ "uModelMatrix", mat4::toArr(modelMatrix) },
 							});
