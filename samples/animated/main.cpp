@@ -18,6 +18,8 @@ constexpr int COMPONENT_TYPE_FLOAT = 5126;
 constexpr int COMPONENT_TYPE_UNSIGNED_SHORT = 5123;
 
 constexpr int TYPE_VEC3 = 3;
+constexpr int TYPE_VEC2 = 2;
+
 
 void cubeData(
 	std::vector<float>& posData,
@@ -72,6 +74,7 @@ void loadMesh(
 	
 	reglCpp::VertexBuffer* meshPosBuffer,
 	reglCpp::VertexBuffer* meshNormalBuffer,
+	reglCpp::VertexBuffer* meshTexcoordBuffer,
 
 	reglCpp::IndexBuffer* meshIndexBuffer,
 
@@ -282,6 +285,66 @@ void loadMesh(
 			.name("mesh normal buffer")
 			.finish();
 	}
+
+	{
+
+		tinygltf::Accessor gltfTexcoordAccesor = model.accessors[gltfPrimtive.attributes["TEXCOORD_0"]];
+		assert(gltfTexcoordAccesor.normalized == false);
+		assert(gltfTexcoordAccesor.componentType == COMPONENT_TYPE_FLOAT);
+		assert(gltfTexcoordAccesor.type == TYPE_VEC2);
+
+		tinygltf::BufferView gltfTexcoordBufferView = model.bufferViews[gltfTexcoordAccesor.bufferView];
+		assert(gltfTexcoordBufferView.target == BUFFER_VIEW_TARGET_ARRAY_BUFFER);
+		assert(gltfTexcoordBufferView.byteStride == 8);
+
+		const tinygltf::Buffer& gltfBuffer = model.buffers[gltfTexcoordBufferView.buffer];
+
+		int bufferBeg = gltfTexcoordBufferView.byteOffset;
+		int bufferEnd = bufferBeg + gltfTexcoordBufferView.byteLength;
+
+		int iBuf = bufferBeg;
+
+		iBuf += gltfTexcoordAccesor.byteOffset;
+
+		const float xmin = gltfTexcoordAccesor.minValues[0];
+		const float ymin = gltfTexcoordAccesor.minValues[1];
+					   
+		const float xmax = gltfTexcoordAccesor.maxValues[0];
+		const float ymax = gltfTexcoordAccesor.maxValues[1];
+		
+		std::vector<float> normalData;
+
+		for (int iElem = 0; iElem < gltfTexcoordAccesor.count; ++iElem) {
+			float x = bytesToFloat(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1],
+				gltfBuffer.data[iBuf + 2],
+				gltfBuffer.data[iBuf + 3]);
+			iBuf += 4;
+
+			float y = bytesToFloat(
+				gltfBuffer.data[iBuf + 0],
+				gltfBuffer.data[iBuf + 1],
+				gltfBuffer.data[iBuf + 2],
+				gltfBuffer.data[iBuf + 3]);
+			iBuf += 4;
+
+			assert(x >= xmin && x <= xmax);
+			assert(y >= ymin && y <= ymax);
+			
+			normalData.push_back(x);
+			normalData.push_back(y);
+		}
+
+		*meshTexcoordBuffer =
+			reglCpp::VertexBuffer()
+			.data(normalData.data())
+			.length((unsigned int)normalData.size() / 2)
+			.numComponents(2)
+			.name("mesh texcoord buffer")
+			.finish();
+	}
+
 	
 	{
 		tinygltf::Accessor gltfIndexAccesor = model.accessors[gltfPrimtive.indices];
@@ -336,13 +399,20 @@ void loadMesh(
 void demo() {
 	reglCpp::VertexBuffer meshPosBuffer;
 	reglCpp::VertexBuffer meshNormalBuffer;
+	reglCpp::VertexBuffer meshTexcoordBuffer;
 
 	reglCpp::IndexBuffer meshIndexBuffer;
 
 	int indexCount;
 	int numPoints;
 
-	loadMesh(&meshPosBuffer, &meshNormalBuffer, &meshIndexBuffer, &numPoints, &indexCount);
+	loadMesh(
+		&meshPosBuffer, 
+		&meshNormalBuffer,
+		&meshTexcoordBuffer, 
+		&meshIndexBuffer,
+		&numPoints, 
+		&indexCount);
 
 	reglCpp::VertexBuffer cubePosBuffer;
 	reglCpp::VertexBuffer cubeNormalBuffer;
@@ -524,12 +594,15 @@ varying vec3 fsNormal;
 
 void main()
 {
-    gl_FragColor = vec4(fsNormal, 1.0);
+ //   gl_FragColor = vec4(fsNormal, 1.0);
+    gl_FragColor = vec4(fsUv, 0.0, 1.0);
+
 }
 				)V0G0N")
 						.attributes({
 							{ "aPosition", &meshPosBuffer },
-							{ "aNormal",& meshNormalBuffer }
+							{ "aNormal",& meshNormalBuffer },
+							{ "aUv",& meshTexcoordBuffer }
 							} )
 
 						.indices(&meshIndexBuffer)
