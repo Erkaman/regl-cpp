@@ -142,7 +142,7 @@ VertexBuffer& VertexBuffer::finish() {
 
 void VertexBuffer::dispose() {
 	GL_C(glDeleteBuffers(1, &mBufferObject.first));
-	mBufferObject.first = false;
+	mBufferObject.second = false;
 }
 
 IndexBuffer& IndexBuffer::finish() {
@@ -183,7 +183,7 @@ IndexBuffer& IndexBuffer::finish() {
 
 void IndexBuffer::dispose() {
 	GL_C(glDeleteBuffers(1, &mBufferObject.first));
-	mBufferObject.first = false;
+	mBufferObject.second = false;
 }
 
 Texture2D& Texture2D::finish() {
@@ -285,6 +285,10 @@ Texture2D& Texture2D::finish() {
 	return *this;
 }
 
+void Texture2D::dispose() {
+	GL_C(glDeleteTextures(1, &mTexture.first));
+	mTexture.second = false;
+}
 
 inline char* GetShaderLogInfo(GLuint shader) {
 	GLint len;

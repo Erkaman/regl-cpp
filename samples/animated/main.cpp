@@ -490,9 +490,7 @@ void demo() {
 	reglCpp::VertexBuffer meshPosBuffer;
 	reglCpp::VertexBuffer meshNormalBuffer;
 	reglCpp::VertexBuffer meshTexcoordBuffer;
-
 	reglCpp::IndexBuffer meshIndexBuffer;
-
 	reglCpp::Texture2D meshTexture;
 
 	int indexCount;
@@ -507,54 +505,8 @@ void demo() {
 		&indexCount,
 		&meshTexture);
 	
-	reglCpp::VertexBuffer cubePosBuffer;
-	reglCpp::VertexBuffer cubeNormalBuffer;
-	reglCpp::VertexBuffer cubeUvBuffer;
-	reglCpp::IndexBuffer cubeIndexBuffer;
 
 	camera = Camera(vec3(-0.277534f, 0.885269f, 2.221981f), vec3(-0.008268f, -0.841857f, -0.539637f));
-
-	std::vector<float> posData;
-	std::vector<float> normalData;
-	std::vector<float> uvData;
-	std::vector<unsigned int> indexData;
-
-	cubeData(
-		posData,
-		uvData,
-		normalData,
-		indexData);
-
-	cubePosBuffer =
-		reglCpp::VertexBuffer()
-		.data(posData.data())
-		.length((unsigned int)posData.size() / 3)
-		.numComponents(3)
-		.name("cube normal buffer")
-		.finish();
-
-	cubeNormalBuffer =
-		reglCpp::VertexBuffer()
-		.data(normalData.data())
-		.length((unsigned int)normalData.size() / 3)
-		.numComponents(3)
-		.name("cube normal buffer")
-		.finish();
-	
-	cubeUvBuffer =
-		reglCpp::VertexBuffer()
-		.data(uvData.data())
-		.length((unsigned int)uvData.size() / 2)
-		.numComponents(2)
-		.name("cube uv buffer")
-		.finish();
-
-	cubeIndexBuffer =
-		reglCpp::IndexBuffer()
-		.data(indexData.data())
-		.length((unsigned int)indexData.size() / 1)
-		.name("cube index buffer")
-		.finish();
 
 	reglCpp::Texture2D texture;
 
@@ -640,41 +592,6 @@ void main()
 			
 				{
 					mat4 modelMatrix;
-					modelMatrix.m[3][0] = -0.5f;
-
-					Command triCmd = Command()
-						
-						.frag(R"V0G0N( 
-precision highp float;
- 
-varying vec2 fsUv;
-varying vec3 fsNormal;
-
-uniform sampler2D uTex;
-
-void main()
-{
-	vec3 c = texture2D(uTex, fsUv.xy).rgb;
-    gl_FragColor = vec4(c.xyz, 1.0);
-}
-				)V0G0N")
-						.attributes({
-							{ "aPosition", &cubePosBuffer },
-							{ "aUv", &cubeUvBuffer },
-							{ "aNormal", &cubeNormalBuffer } })
-						.indices(&cubeIndexBuffer)
-						.count((int)indexData.size())
-						.primitive("triangles")
-						.uniforms({
-							{ "uModelMatrix", mat4::toArr(modelMatrix) },
-							{ "uTex", &texture },
-							});
-
-					reglCpp::context.submit(triCmd);
-				}
-
-				{
-					mat4 modelMatrix;
 					//modelMatrix.m[3][0] = -0.5f;
 
 					Command pointsCmd = Command()
@@ -719,10 +636,12 @@ void main()
 	});
 	
 
-	cubeNormalBuffer.dispose();
-	cubePosBuffer.dispose();
-	cubeIndexBuffer.dispose();
-	
+	meshPosBuffer.dispose();
+	meshNormalBuffer.dispose();
+	meshTexcoordBuffer.dispose();
+	meshIndexBuffer.dispose();
+	meshTexture.dispose();
+
 	reglCpp::context.dispose();
 }
 
